@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Track Valuation - Balaji Technical Designing and Consultancy</title>
-  <meta name="description" content="Check if your property valuation was done by BTDC. Search by name, reference number, or valuation ID.">
+  <meta name="description" content="Check if your property valuation was done by BTDC. Enter your reference number to verify authenticity.">
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="assets/icons/favicon.ico" type="image/x-icon">
 </head>
@@ -21,37 +21,40 @@
         <a href="valuation-checker.html">Valuation Checker</a>
         <a href="track-valuation.html" class="active">Track Valuation</a>
         <a href="contact.html">Contact</a>
+        <a href="login.html">Login</a>
       </nav>
     </div>
   </header>
 
-  <section class="hero" style="padding: 110px 0 50px;">
-    <div class="container" style="text-align: center;">
-      <h1 style="font-size: 2.2rem;">Track Your <span>Valuation</span></h1>
-      <p style="max-width: 700px; margin: 16px auto 0;">Check the status of your property valuation. Search by your name, reference number, or valuation ID.</p>
+  <section class="hero" style="padding:110px 0 50px;">
+    <div class="container" style="text-align:center;">
+      <h1 style="font-size:2.2rem;">Verify Your <span>Valuation Report</span></h1>
+      <p style="max-width:700px;margin:16px auto 0;">Enter your reference number to check if your property valuation was done by BTDC and view its verification status.</p>
     </div>
   </section>
 
   <section class="section" style="background:var(--accent);">
-    <div class="container" style="max-width: 800px;">
-      <div class="contact-form" style="background:var(--white);">
-        <div class="form-group" style="margin-bottom:16px;">
-          <label for="trackQuery">Search by Name, Reference Number, or Valuation ID</label>
-          <input type="text" id="trackQuery" placeholder="Enter your name, ref number (e.g. BTDC-001), or valuation ID" style="width:100%;padding:14px;font-size:1rem;border:1px solid #ddd;border-radius:8px;">
+    <div class="container" style="max-width:700px;">
+      <div class="contact-form" style="background:var(--white);text-align:center;">
+        <div style="font-size:2.5rem;margin-bottom:12px;opacity:0.3;">&#x1F50D;</div>
+        <h3 style="color:var(--primary);margin-bottom:8px;">Enter Reference Number</h3>
+        <p style="color:var(--text-light);margin-bottom:20px;">The reference number was provided when your valuation was submitted.</p>
+        <div class="form-group" style="max-width:450px;margin:0 auto 16px;">
+          <input type="text" id="trackRefNumber" placeholder="e.g. BTDC-001 or 0001" style="text-align:center;font-size:1.1rem;padding:14px;">
         </div>
-        <button class="btn btn-primary" onclick="trackValuation()" id="trackBtn" style="width:100%;">Search</button>
+        <button class="btn btn-primary" onclick="lookupValuation()" id="trackBtn" style="min-width:200px;">Verify Report</button>
+        <div id="trackLoading" style="margin-top:16px;color:var(--text-light);display:none;">Searching...</div>
+        <div id="trackError" style="margin-top:16px;color:#dc3545;display:none;"></div>
       </div>
 
-      <div id="trackResults" style="margin-top:30px;display:none;"></div>
-      <div id="trackError" style="margin-top:16px;color:#dc3545;display:none;text-align:center;"></div>
-      <div id="trackLoading" style="margin-top:30px;text-align:center;color:var(--text-light);display:none;">Searching...</div>
+      <div id="trackResult" style="display:none;margin-top:30px;"></div>
     </div>
   </section>
 
   <section class="section" style="background:var(--white);text-align:center;">
     <div class="container">
-      <h2 class="section-title">Didn't Find Your Valuation?</h2>
-      <p class="section-subtitle">If you had a valuation done by BTDC and can't find it here, contact us directly.</p>
+      <h2 class="section-title">Need Help?</h2>
+      <p class="section-subtitle">If you can't find your valuation or need assistance, contact our team directly.</p>
       <a href="contact.html" class="btn btn-primary">Contact Us</a>
     </div>
   </section>
@@ -77,7 +80,6 @@
           <ul>
             <li><a href="services.html">Property Valuation</a></li>
             <li><a href="services.html">Insurance Surveyor</a></li>
-            <li><a href="services.html">Engineering Consultancy</a></li>
           </ul>
         </div>
         <div class="footer-links">
@@ -95,7 +97,91 @@
     </div>
   </footer>
 
-  <script src="js/main.js"></script>
-  <script src="js/track.js"></script>
+<script type="module">
+import { db } from './js/firebase-config.js';
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+window.lookupValuation = async function() {
+  const refNum = document.getElementById('trackRefNumber').value.trim();
+  const resultDiv = document.getElementById('trackResult');
+  const errorDiv = document.getElementById('trackError');
+  const loadingDiv = document.getElementById('trackLoading');
+  const btn = document.getElementById('trackBtn');
+
+  if (!refNum) {
+    errorDiv.textContent = 'Please enter a reference number.';
+    errorDiv.style.display = 'block';
+    resultDiv.style.display = 'none';
+    return;
+  }
+
+  errorDiv.style.display = 'none';
+  resultDiv.style.display = 'none';
+  loadingDiv.style.display = 'block';
+  btn.disabled = true;
+  btn.textContent = 'Searching...';
+
+  try {
+    const snap = await getDoc(doc(db, 'public', refNum));
+    loadingDiv.style.display = 'none';
+    btn.disabled = false;
+    btn.textContent = 'Verify Report';
+
+    if (!snap.exists()) {
+      resultDiv.innerHTML = `
+        <div style="text-align:center;padding:40px;background:var(--white);border-radius:8px;box-shadow:var(--shadow);">
+          <div style="font-size:3rem;margin-bottom:16px;">&#x274C;</div>
+          <h3 style="color:var(--text);margin-bottom:8px;">No Record Found</h3>
+          <p style="color:var(--text-light);">No valuation matches reference number <strong>"${esc(refNum)}"</strong>. Please check the number or contact us.</p>
+        </div>
+      `;
+      resultDiv.style.display = 'block';
+      return;
+    }
+
+    const d = snap.data();
+    const isVerified = d.verifiedBy && d.verifiedBy.trim();
+    const statusClass = (d.status || 'pending').toLowerCase().replace(/\s+/g, '-');
+    const amount = d.valuationAmount ? 'NPR ' + Number(d.valuationAmount).toLocaleString('en-IN') : '-';
+
+    resultDiv.innerHTML = `
+      <div class="track-card">
+        <div class="track-card-header">
+          <span style="display:flex;align-items:center;gap:12px;">
+            <span style="font-size:1.3rem;">${isVerified ? '&#x2705;' : '&#x1F512;'}</span>
+            <strong style="color:var(--primary);font-size:1.1rem;">Valuation Found</strong>
+          </span>
+          <span class="status-badge status-${esc(statusClass)}">${esc(d.status)}</span>
+        </div>
+        <div class="track-card-body">
+          <div class="track-field"><strong>Customer Name:</strong> ${esc(d.customerName || '-')}</div>
+          <div class="track-field"><strong>Valuation Type:</strong> ${esc(d.valuationType || '-')}</div>
+          <div class="track-field"><strong>Reference Number:</strong> ${esc(refNum)}</div>
+          <div class="track-field"><strong>Amount:</strong> ${amount}</div>
+          <div class="track-field"><strong>Date:</strong> ${esc(d.valuationDate || '-')}</div>
+          <div class="track-field"><strong>Initiated By:</strong> ${esc(d.initiatedBy || '-')}</div>
+        </div>
+        <div style="padding:14px 20px;border-top:1px solid #eee;background:${isVerified ? '#d4edda' : '#fff3cd'};border-radius:0 0 8px 8px;">
+          ${isVerified
+            ? `<p style="color:#155724;font-weight:600;font-size:0.92rem;">&#x2705; This report has been verified by ${esc(d.verifiedBy)}. It is an authentic BTDC valuation document.</p>`
+            : `<p style="color:#856404;font-weight:600;font-size:0.92rem;">&#x26A0;&#xFE0F; This valuation is pending verification by BTDC. Check back later or contact us.</p>`
+          }
+        </div>
+      </div>
+    `;
+    resultDiv.style.display = 'block';
+  } catch (err) {
+    loadingDiv.style.display = 'none';
+    btn.disabled = false;
+    btn.textContent = 'Verify Report';
+    errorDiv.textContent = 'Connection error. Please try again.';
+    errorDiv.style.display = 'block';
+  }
+};
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+
+document.getElementById('trackRefNumber').addEventListener('keydown', e => { if (e.key === 'Enter') lookupValuation(); });
+</script>
 </body>
 </html>

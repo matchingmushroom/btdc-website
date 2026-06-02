@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Panel - BTDC Valuation Management</title>
+  <title>Staff Panel - BTDC Valuation Management</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="assets/icons/favicon.ico" type="image/x-icon">
 </head>
 <body>
   <header>
     <div class="header-inner">
-      <a href="index.html" class="logo"><span>BTDC</span> Admin</a>
+      <a href="index.html" class="logo"><span>BTDC</span> Staff</a>
       <button class="hamburger" aria-label="Menu">
         <span></span><span></span><span></span>
       </button>
@@ -21,7 +21,7 @@
   </header>
 
   <section class="section" style="padding-top:100px;">
-    <div class="container" id="adminContent" style="display:none;">
+    <div class="container" id="staffContent" style="display:none;">
 
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:24px;">
         <div>
@@ -29,27 +29,13 @@
           <p id="userInfo" style="color:var(--text-light);font-size:0.88rem;margin-top:4px;"></p>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <input type="text" id="adminSearch" placeholder="Search records..." oninput="renderTable()" style="padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;width:200px;">
-          <button class="btn btn-primary" onclick="showModal('add')">+ Add New</button>
-          <button class="btn btn-outline" style="border-color:var(--primary);color:var(--primary);" onclick="toggleUsers()">Manage Users</button>
-        </div>
-      </div>
-
-      <div id="usersSection" style="display:none;margin-bottom:30px;background:var(--white);border-radius:8px;box-shadow:var(--shadow);padding:25px;">
-        <h3 style="color:var(--primary);margin-bottom:16px;">Manage Staff Users</h3>
-        <form id="createUserForm" onsubmit="createStaffUser(event)" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;padding:16px;background:var(--accent);border-radius:8px;">
-          <input type="text" id="newUserName" placeholder="Full name" required style="padding:10px 14px;border:1px solid #ddd;border-radius:6px;flex:1;min-width:160px;">
-          <input type="email" id="newUserEmail" placeholder="Email" required style="padding:10px 14px;border:1px solid #ddd;border-radius:6px;flex:1;min-width:200px;">
-          <input type="password" id="newUserPassword" placeholder="Password" required style="padding:10px 14px;border:1px solid #ddd;border-radius:6px;flex:1;min-width:140px;">
-          <button type="submit" class="btn btn-primary" style="padding:10px 20px;">Create Staff</button>
-        </form>
-        <div id="userList">
-          <p style="color:var(--text-light);">Loading users...</p>
+          <input type="text" id="staffSearch" placeholder="Search records..." oninput="renderTable()" style="padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;width:200px;">
+          <button class="btn btn-primary" onclick="showAddModal()">+ Add New</button>
         </div>
       </div>
 
       <div style="overflow-x:auto;">
-        <table class="admin-table" id="adminTable">
+        <table class="admin-table" id="staffTable">
           <thead>
             <tr>
               <th>ID</th>
@@ -63,7 +49,7 @@
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody id="adminTableBody"></tbody>
+          <tbody id="staffTableBody"></tbody>
         </table>
       </div>
       <p id="noRecords" style="text-align:center;color:var(--text-light);padding:40px;display:none;">No records found.</p>
@@ -127,7 +113,7 @@
           </div>
           <div class="form-group">
             <label>Verified By</label>
-            <input type="text" id="f_VerifiedBy">
+            <input type="text" id="f_VerifiedBy" disabled style="background:#eee;cursor:not-allowed;">
           </div>
         </div>
         <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px;">
@@ -145,46 +131,41 @@
   </footer>
 
 <script type="module">
-import { auth, db, FIREBASE_API_KEY } from './js/firebase-config.js';
+import { auth, db } from './js/firebase-config.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
 import {
-  collection, query, orderBy, onSnapshot, getDocs,
-  addDoc, setDoc, updateDoc, deleteDoc, doc, getDoc,
-  runTransaction, serverTimestamp, where
+  collection, query, orderBy, onSnapshot,
+  addDoc, updateDoc, doc, getDoc,
+  runTransaction, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
 const COLL = 'valuations';
 const PUBLIC_COLL = 'public';
-const USERS_COLL = 'users';
 const COUNTER_DOC = 'counters/valuations';
 
 window.currentUser = null;
-window.currentRole = null;
 window.valuationsData = [];
-window.unsubValuations = null;
 
 onAuthStateChanged(auth, async (user) => {
-  const content = document.getElementById('adminContent');
+  const content = document.getElementById('staffContent');
   const check = document.getElementById('authCheck');
   if (!user) { window.location.href = 'login.html'; return; }
-  const snap = await getDoc(doc(db, USERS_COLL, user.uid));
-  if (!snap.exists() || snap.data().role !== 'admin') {
+  const snap = await getDoc(doc(db, 'users', user.uid));
+  if (!snap.exists() || snap.data().role !== 'staff') {
     await signOut(auth);
     window.location.href = 'login.html';
     return;
   }
   window.currentUser = user;
-  window.currentRole = 'admin';
-  document.getElementById('userInfo').textContent = 'Logged in as: ' + user.email + ' (Admin)';
+  document.getElementById('userInfo').textContent = 'Logged in as: ' + user.email + ' (Staff)';
   check.style.display = 'none';
   content.style.display = 'block';
   startRealtimeListener();
-  loadUsers();
 });
 
 function startRealtimeListener() {
   const q = query(collection(db, COLL), orderBy('createdAt', 'desc'));
-  window.unsubValuations = onSnapshot(q, (snapshot) => {
+  onSnapshot(q, (snapshot) => {
     window.valuationsData = [];
     snapshot.forEach(doc => {
       window.valuationsData.push({ id: doc.id, ...doc.data() });
@@ -192,21 +173,21 @@ function startRealtimeListener() {
     renderTable();
     document.getElementById('loadingSpinner').style.display = 'none';
   }, (err) => {
-    document.getElementById('loadingSpinner').innerHTML = 'Error loading data: ' + err.message;
+    document.getElementById('loadingSpinner').innerHTML = 'Error: ' + err.message;
   });
 }
 
 window.renderTable = function() {
-  const q = (document.getElementById('adminSearch').value || '').toLowerCase();
+  const q = (document.getElementById('staffSearch').value || '').toLowerCase();
   const data = window.valuationsData.filter(r =>
-    !q || (r.customerName || '').toLowerCase().includes(q) || (r.refNumber || '').toLowerCase().includes(q) || (r.valuationId || '').toLowerCase().includes(q) || (r.propertyAddress || '').toLowerCase().includes(q) || (r.status || '').toLowerCase().includes(q)
+    !q || (r.customerName||'').toLowerCase().includes(q) || (r.refNumber||'').toLowerCase().includes(q) || (r.valuationId||'').toLowerCase().includes(q)
   );
-  const tbody = document.getElementById('adminTableBody');
+  const tbody = document.getElementById('staffTableBody');
   const noRec = document.getElementById('noRecords');
   if (!data.length) { tbody.innerHTML = ''; noRec.style.display = 'block'; return; }
   noRec.style.display = 'none';
   tbody.innerHTML = data.map(r => {
-    const isVerified = r.verifiedBy && r.verifiedBy.trim();
+    const verified = r.verifiedBy && r.verifiedBy.trim();
     return `<tr>
       <td>${esc(r.valuationId)}</td>
       <td><strong>${esc(r.customerName)}</strong></td>
@@ -215,26 +196,21 @@ window.renderTable = function() {
       <td>${esc(r.valuationType)}</td>
       <td>${esc(r.valuationDate)}</td>
       <td>${r.valuationAmount ? 'NPR ' + Number(r.valuationAmount).toLocaleString('en-IN') : '-'}</td>
-      <td><span class="status-badge status-${esc((r.status||'pending').toLowerCase().replace(/\s+/g,'-'))}">${esc(r.status)}${isVerified ? ' &#x2705;' : ''}</span></td>
+      <td><span class="status-badge status-${esc((r.status||'pending').toLowerCase().replace(/\s+/g,'-'))}">${esc(r.status)}${verified ? ' &#x2705;' : ''}</span></td>
       <td class="action-btns">
         <button class="btn-sm btn-edit" onclick="editValuation('${esc(r.id)}')">Edit</button>
-        ${!isVerified ? `<button class="btn-sm" style="background:#28a745;color:#fff;" onclick="verifyValuation('${esc(r.id)}')">Verify</button>` : ''}
-        <button class="btn-sm btn-delete" onclick="deleteValuation('${esc(r.id)}')">Delete</button>
       </td>
     </tr>`;
   }).join('');
 };
 
-window.showModal = function(mode, id) {
-  const modal = document.getElementById('valuationModal');
-  if (mode === 'add') {
-    document.getElementById('modalTitle').textContent = 'Add Valuation';
-    document.getElementById('saveBtn').textContent = 'Add Valuation';
-    document.getElementById('editDocId').value = '';
-    document.getElementById('valuationForm').reset();
-    document.getElementById('f_ValuationDate').value = new Date().toISOString().split('T')[0];
-  }
-  modal.style.display = 'flex';
+window.showAddModal = function() {
+  document.getElementById('modalTitle').textContent = 'Add Valuation';
+  document.getElementById('saveBtn').textContent = 'Add Valuation';
+  document.getElementById('editDocId').value = '';
+  document.getElementById('valuationForm').reset();
+  document.getElementById('f_ValuationDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('valuationModal').style.display = 'flex';
 };
 
 window.editValuation = function(id) {
@@ -251,7 +227,6 @@ window.editValuation = function(id) {
   document.getElementById('f_ValuationAmount').value = rec.valuationAmount || '';
   document.getElementById('f_Status').value = rec.status || 'Pending';
   document.getElementById('f_InitiatedBy').value = rec.initiatedBy || '';
-  document.getElementById('f_VerifiedBy').value = rec.verifiedBy || '';
   document.getElementById('valuationModal').style.display = 'flex';
 };
 
@@ -273,7 +248,6 @@ window.saveValuation = async function(e) {
     valuationAmount: Number(document.getElementById('f_ValuationAmount').value),
     status: document.getElementById('f_Status').value,
     initiatedBy: document.getElementById('f_InitiatedBy').value.trim(),
-    verifiedBy: document.getElementById('f_VerifiedBy').value.trim(),
     updatedAt: serverTimestamp()
   };
 
@@ -282,19 +256,11 @@ window.saveValuation = async function(e) {
 
   try {
     if (isEdit) {
-      await updateDoc(doc(db, COLL, editId), data);
       const existing = window.valuationsData.find(r => r.id === editId);
+      await updateDoc(doc(db, COLL, editId), data);
       const refNum = data.refNumber || (existing && existing.refNumber);
       if (refNum) {
-        await setDoc(doc(db, PUBLIC_COLL, refNum), {
-          customerName: data.customerName,
-          status: data.status,
-          valuationDate: data.valuationDate,
-          valuationType: data.valuationType,
-          valuationAmount: data.valuationAmount,
-          verifiedBy: data.verifiedBy,
-          initiatedBy: data.initiatedBy
-        }, { merge: true });
+        await setPublicDoc(refNum, data);
       }
       showToast('Valuation updated', 'success');
     } else {
@@ -304,19 +270,12 @@ window.saveValuation = async function(e) {
         valuationId: nextId,
         createdBy: window.currentUser.uid,
         createdAt: serverTimestamp(),
+        verifiedBy: '',
         verifiedAt: null
       };
       const docRef = await addDoc(collection(db, COLL), fullData);
       if (data.refNumber) {
-        await setDoc(doc(db, PUBLIC_COLL, data.refNumber), {
-          customerName: data.customerName,
-          status: data.status,
-          valuationDate: data.valuationDate,
-          valuationType: data.valuationType,
-          valuationAmount: data.valuationAmount,
-          verifiedBy: data.verifiedBy,
-          initiatedBy: data.initiatedBy
-        });
+        await setPublicDoc(data.refNumber, data);
       }
       showToast('Valuation added (ID: ' + nextId + ')', 'success');
     }
@@ -328,51 +287,25 @@ window.saveValuation = async function(e) {
   btn.disabled = false;
 };
 
-window.verifyValuation = async function(id) {
-  if (!confirm('Verify this valuation?')) return;
-  try {
-    const name = window.currentUser.displayName || window.currentUser.email;
-    await updateDoc(doc(db, COLL, id), {
-      status: 'Completed',
-      verifiedBy: name,
-      verifiedAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
-    const rec = window.valuationsData.find(r => r.id === id);
-    if (rec && rec.refNumber) {
-      await setDoc(doc(db, PUBLIC_COLL, rec.refNumber), {
-        status: 'Completed',
-        verifiedBy: name
-      }, { merge: true });
-    }
-    showToast('Valuation verified by ' + name, 'success');
-  } catch (err) {
-    showToast('Error: ' + err.message, 'error');
-  }
-};
-
-window.deleteValuation = async function(id) {
-  if (!confirm('Delete this valuation permanently?')) return;
-  try {
-    const rec = window.valuationsData.find(r => r.id === id);
-    await deleteDoc(doc(db, COLL, id));
-    if (rec && rec.refNumber) {
-      await deleteDoc(doc(db, PUBLIC_COLL, rec.refNumber));
-    }
-    showToast('Valuation deleted', 'success');
-  } catch (err) {
-    showToast('Error: ' + err.message, 'error');
-  }
-};
+async function setPublicDoc(refNum, data) {
+  const publicRef = doc(db, PUBLIC_COLL, refNum);
+  const existing = await getDoc(publicRef);
+  await setDoc(publicRef, {
+    customerName: data.customerName,
+    status: data.status,
+    valuationDate: data.valuationDate,
+    valuationType: data.valuationType,
+    valuationAmount: data.valuationAmount,
+    initiatedBy: data.initiatedBy,
+    verifiedBy: existing.exists() ? existing.data().verifiedBy || '' : ''
+  }, { merge: true });
+}
 
 async function getNextValuationId() {
   const ref = doc(db, COUNTER_DOC);
   return await runTransaction(db, async (tx) => {
     const snap = await tx.get(ref);
-    if (!snap.exists()) {
-      tx.set(ref, { count: 1 });
-      return '0001';
-    }
+    if (!snap.exists()) { tx.set(ref, { count: 1 }); return '0001'; }
     const next = snap.data().count + 1;
     tx.update(ref, { count: next });
     return String(next).padStart(4, '0');
@@ -382,75 +315,6 @@ async function getNextValuationId() {
 window.handleLogout = function() {
   signOut(auth);
   window.location.href = 'login.html';
-};
-
-window.toggleUsers = function() {
-  const el = document.getElementById('usersSection');
-  el.style.display = el.style.display === 'none' ? 'block' : 'none';
-  if (el.style.display === 'block') loadUsers();
-};
-
-async function loadUsers() {
-  const el = document.getElementById('userList');
-  try {
-    const snap = await getDocs(collection(db, USERS_COLL));
-    if (snap.empty) { el.innerHTML = '<p style="color:var(--text-light);">No users found.</p>'; return; }
-    let html = '<table class="admin-table"><thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Action</th></tr></thead><tbody>';
-    snap.forEach(d => {
-      const u = d.data();
-      html += `<tr>
-        <td>${esc(u.email)}</td>
-        <td>${esc(u.displayName || '-')}</td>
-        <td><span class="status-badge" style="background:${u.role==='admin'?'#cce5ff':'#d4edda'};color:${u.role==='admin'?'#004085':'#155724'};">${esc(u.role)}</span></td>
-        <td>${u.role !== 'admin' ? `<button class="btn-sm" style="background:#dc3545;color:#fff;" onclick="removeUser('${esc(d.id)}')">Remove</button>` : '-'}</td>
-      </tr>`;
-    });
-    html += '</tbody></table>';
-    el.innerHTML = html;
-  } catch (err) {
-    el.innerHTML = '<p style="color:#dc3545;">Error: ' + err.message + '</p>';
-  }
-}
-
-window.createStaffUser = async function(e) {
-  e.preventDefault();
-  const name = document.getElementById('newUserName').value.trim();
-  const email = document.getElementById('newUserEmail').value.trim();
-  const password = document.getElementById('newUserPassword').value;
-  const btn = e.target.querySelector('button');
-  btn.textContent = 'Creating...';
-  btn.disabled = true;
-  try {
-    const resp = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' + FIREBASE_API_KEY, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, returnSecureToken: true })
-    });
-    const data = await resp.json();
-    if (data.error) throw new Error(data.error.message);
-    const uid = data.localId;
-    await setDoc(doc(db, USERS_COLL, uid), {
-      email, displayName: name, role: 'staff', createdAt: serverTimestamp()
-    });
-    document.getElementById('createUserForm').reset();
-    showToast('Staff user ' + email + ' created', 'success');
-    loadUsers();
-  } catch (err) {
-    showToast('Error: ' + err.message, 'error');
-  }
-  btn.textContent = 'Create Staff';
-  btn.disabled = false;
-};
-
-window.removeUser = async function(uid) {
-  if (!confirm('Remove this user? They will lose access.')) return;
-  try {
-    await deleteDoc(doc(db, USERS_COLL, uid));
-    showToast('User removed', 'success');
-    loadUsers();
-  } catch (err) {
-    showToast('Error: ' + err.message, 'error');
-  }
 };
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }

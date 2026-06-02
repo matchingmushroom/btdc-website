@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - BTDC Admin</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="assets/icons/favicon.ico" type="image/x-icon">
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <a href="index.html" class="logo"><span>BTDC</span> Admin</a>
+      <button class="hamburger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="track-valuation.html">Track Valuation</a>
+        <a href="login.html" class="active">Login</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="section" style="padding-top:120px;">
+    <div class="container" style="display:flex;justify-content:center;">
+      <div class="login-box" style="max-width:440px;width:100%;">
+        <h2 style="margin-bottom:8px;">Staff / Admin Login</h2>
+        <p style="color:var(--text-light);margin-bottom:24px;">Sign in to manage valuations</p>
+
+        <div id="loginForm">
+          <div class="form-group">
+            <label for="loginEmail">Email</label>
+            <input type="email" id="loginEmail" placeholder="Enter your email" autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label for="loginPassword">Password</label>
+            <input type="password" id="loginPassword" placeholder="Enter your password" autocomplete="current-password">
+          </div>
+          <div id="loginError" style="color:#dc3545;margin-bottom:12px;display:none;"></div>
+          <button class="btn btn-primary" onclick="handleLogin()" id="loginBtn" style="width:100%;">Sign In</button>
+          <p style="margin-top:16px;text-align:center;font-size:0.85rem;color:var(--text-light);">
+            <a href="index.html" style="color:var(--primary);">Back to Home</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-about">
+          <h3>Balaji Technical <span>Designing &amp; Consultancy</span></h3>
+          <p>Established in 2079 B.S., BTDC is a trusted engineering and consultancy firm.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="track-valuation.html">Track Valuation</a></li>
+            <li><a href="contact.html">Contact</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Balaji Technical Designing and Consultancy. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+<script type="module">
+import { auth, db } from './js/firebase-config.js';
+import { signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+window.handleLogin = async function() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errorEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+
+  if (!email || !password) {
+    errorEl.textContent = 'Please enter email and password.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  errorEl.style.display = 'none';
+  btn.textContent = 'Signing in...';
+  btn.disabled = true;
+
+  try {
+    const cred = await signInWithEmailAndPassword(auth, email, password);
+    const uid = cred.user.uid;
+    const userDoc = await getDoc(doc(db, 'users', uid));
+    if (!userDoc.exists()) {
+      await auth.signOut();
+      errorEl.textContent = 'Account not authorized. Contact admin.';
+      errorEl.style.display = 'block';
+      btn.textContent = 'Sign In';
+      btn.disabled = false;
+      return;
+    }
+    const role = userDoc.data().role;
+    if (role === 'admin') window.location.href = 'admin.html';
+    else if (role === 'staff') window.location.href = 'staff.html';
+    else {
+      await auth.signOut();
+      errorEl.textContent = 'Invalid role assigned. Contact admin.';
+      errorEl.style.display = 'block';
+    }
+  } catch (err) {
+    errorEl.textContent = err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
+      ? 'Invalid email or password.'
+      : err.message;
+    errorEl.style.display = 'block';
+  }
+  btn.textContent = 'Sign In';
+  btn.disabled = false;
+};
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    getDoc(doc(db, 'users', user.uid)).then(snap => {
+      if (snap.exists()) {
+        const role = snap.data().role;
+        if (role === 'admin') window.location.href = 'admin.html';
+        else if (role === 'staff') window.location.href = 'staff.html';
+      }
+    });
+  }
+});
+
+document.getElementById('loginEmail').addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
+document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
+</script>
+</body>
+</html>
