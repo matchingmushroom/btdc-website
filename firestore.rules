@@ -32,5 +32,10 @@ service cloud.firestore {
       allow read, create, update: if isStaff() || isAdmin();
       allow delete: if isAdmin();
     }
+    match /team/{docId} {
+      allow read: if true;
+      allow create, update: if isStaff() || isAdmin();
+      allow delete: if isAdmin();
+    }
   }
 }

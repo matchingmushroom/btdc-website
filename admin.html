@@ -35,6 +35,7 @@
           <button class="btn btn-primary" onclick="showModal('add')">+ Add New</button>
           <button class="btn btn-outline" style="border-color:var(--primary-dark);color:var(--primary-dark);background:var(--white);" onclick="toggleUsers()">Users</button>
           <button class="btn btn-outline" style="border-color:var(--primary-dark);color:var(--primary-dark);background:var(--white);" onclick="toggleBfis()">BFIs</button>
+          <button class="btn btn-outline" style="border-color:var(--primary-dark);color:var(--primary-dark);background:var(--white);" onclick="toggleTeam()">Team</button>
           <button class="btn btn-outline" style="border-color:var(--primary-dark);color:var(--primary-dark);background:var(--white);" onclick="toggleMigration()">Migrate</button>
         </div>
       </div>
@@ -65,6 +66,25 @@
         </form>
         <div id="bfiList">
           <p style="color:var(--text-muted);">Loading BFIs...</p>
+        </div>
+      </div>
+
+      <div id="teamSection" class="admin-section-box" style="display:none;">
+        <h3>Manage Team Members</h3>
+        <form id="addTeamForm" onsubmit="addTeamMember(event)" style="margin-bottom:16px;">
+          <div class="inline-form">
+            <input type="text" id="newTeamName" placeholder="Full name" required>
+            <input type="text" id="newTeamRole" placeholder="Position / Role" required>
+            <input type="url" id="newTeamPhoto" placeholder="Photo URL (optional)">
+            <input type="number" id="newTeamOrder" placeholder="Display order" value="1" min="1" style="min-width:80px;">
+            <button type="submit" class="btn btn-primary" style="padding:10px 20px;" id="teamSubmitBtn">Add Member</button>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <textarea id="newTeamDescription" placeholder="Description / bio" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;min-height:60px;resize:vertical;"></textarea>
+          </div>
+        </form>
+        <div id="teamList">
+          <p style="color:var(--text-muted);">Loading team...</p>
         </div>
       </div>
 
@@ -246,6 +266,7 @@ onAuthStateChanged(auth, async (user) => {
   startRealtimeListener();
   loadUsers();
   startBfiListener();
+  startTeamListener();
   loadStaffCheckboxes();
 });
 
@@ -695,6 +716,100 @@ window.removeUser = async function(uid) {
     await deleteDoc(doc(db, USERS_COLL, uid));
     showToast('User removed', 'success');
     loadUsers();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
+window.teamData = [];
+window.unsubTeam = null;
+
+function startTeamListener() {
+  const q = query(collection(db, 'team'), orderBy('displayOrder', 'asc'));
+  window.unsubTeam = onSnapshot(q, (snapshot) => {
+    window.teamData = [];
+    snapshot.forEach(doc => {
+      window.teamData.push({ id: doc.id, ...doc.data() });
+    });
+    renderTeamTable();
+  });
+}
+
+function renderTeamTable() {
+  const el = document.getElementById('teamList');
+  if (!window.teamData.length) { el.innerHTML = '<p style="color:var(--text-muted);">No team members added yet.</p>'; return; }
+  el.innerHTML = '<div class="table-wrapper"><table class="admin-table"><thead><tr><th>Order</th><th>Photo</th><th>Name</th><th>Position</th><th>Description</th><th>Action</th></tr></thead><tbody>' +
+    window.teamData.map(m => `<tr>
+      <td>${esc(m.displayOrder || '-')}</td>
+      <td>${m.photoUrl ? `<img src="${esc(m.photoUrl)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'">` : '-'}</td>
+      <td><strong>${esc(m.name || '')}</strong></td>
+      <td>${esc(m.role || '')}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(m.description || '')}</td>
+      <td class="action-btns">
+        <button class="btn-sm btn-edit" onclick="editTeamMember('${esc(m.id)}')">Edit</button>
+        <button class="btn-sm btn-delete" onclick="deleteTeamMember('${esc(m.id)}')">Delete</button>
+      </td>
+    </tr>`).join('') +
+    '</tbody></table></div>';
+}
+
+window.toggleTeam = function() {
+  const el = document.getElementById('teamSection');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+};
+
+window.addTeamMember = async function(e) {
+  e.preventDefault();
+  const name = document.getElementById('newTeamName').value.trim();
+  const role = document.getElementById('newTeamRole').value.trim();
+  const photoUrl = document.getElementById('newTeamPhoto').value.trim();
+  const description = document.getElementById('newTeamDescription') ? document.getElementById('newTeamDescription').value.trim() : '';
+  const displayOrder = parseInt(document.getElementById('newTeamOrder').value) || 1;
+  const btn = document.getElementById('teamSubmitBtn');
+  const editId = btn.dataset.editId;
+  const isEdit = !!editId;
+  btn.textContent = isEdit ? 'Updating...' : 'Adding...';
+  btn.disabled = true;
+  try {
+    const data = { name, role, photoUrl, description, displayOrder, updatedAt: serverTimestamp() };
+    if (isEdit) {
+      await updateDoc(doc(db, 'team', editId), data);
+      delete btn.dataset.editId;
+      showToast('Team member updated', 'success');
+    } else {
+      await addDoc(collection(db, 'team'), { ...data, createdAt: serverTimestamp() });
+      showToast('Team member added', 'success');
+    }
+    document.getElementById('addTeamForm').reset();
+    document.getElementById('newTeamOrder').value = window.teamData.length + 1;
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+  btn.textContent = 'Add Member';
+  btn.disabled = false;
+};
+
+window.editTeamMember = function(id) {
+  const rec = window.teamData.find(r => r.id === id);
+  if (!rec) return;
+  document.getElementById('newTeamName').value = rec.name || '';
+  document.getElementById('newTeamRole').value = rec.role || '';
+  document.getElementById('newTeamPhoto').value = rec.photoUrl || '';
+  if (document.getElementById('newTeamDescription')) {
+    document.getElementById('newTeamDescription').value = rec.description || '';
+  }
+  document.getElementById('newTeamOrder').value = rec.displayOrder || 1;
+  const btn = document.getElementById('teamSubmitBtn');
+  btn.textContent = 'Update Member';
+  btn.dataset.editId = id;
+  document.getElementById('teamSection').scrollIntoView({ behavior: 'smooth' });
+};
+
+window.deleteTeamMember = async function(id) {
+  if (!confirm('Delete this team member?')) return;
+  try {
+    await deleteDoc(doc(db, 'team', id));
+    showToast('Team member deleted', 'success');
   } catch (err) {
     showToast('Error: ' + err.message, 'error');
   }

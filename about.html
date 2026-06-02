@@ -85,31 +85,8 @@
     <div class="container">
       <h2 class="section-title">Our <span>Team</span></h2>
       <p class="section-subtitle">Experienced professionals committed to delivering excellence</p>
-      <div class="team-grid">
-        <div class="team-card">
-          <div class="team-img">&#x1F9D1;&#x200D;&#x1F3EB;</div>
-          <div class="team-info">
-            <h3>Er. Rajesh Kumar</h3>
-            <div class="role">Lead Engineer &amp; Director</div>
-            <p>15+ years of experience in civil engineering, valuations, and project management.</p>
-          </div>
-        </div>
-        <div class="team-card">
-          <div class="team-img">&#x1F9D1;&#x200D;&#x1F4BC;</div>
-          <div class="team-info">
-            <h3>Er. Sunita Sharma</h3>
-            <div class="role">Senior Valuation Analyst</div>
-            <p>Expert in residential and commercial property valuations with 10+ years of experience.</p>
-          </div>
-        </div>
-        <div class="team-card">
-          <div class="team-img">&#x1F477;&#x200D;&#x2642;&#xFE0F;</div>
-          <div class="team-info">
-            <h3>Er. Anil Thapa</h3>
-            <div class="role">Technical Audit Specialist</div>
-            <p>Specializes in infrastructure audits, quality assurance, and compliance verification.</p>
-          </div>
-        </div>
+      <div id="teamGrid" class="team-grid">
+        <p style="color:var(--text-muted);text-align:center;width:100%;">Loading team...</p>
       </div>
     </div>
   </section>
@@ -155,6 +132,46 @@
     </div>
   </footer>
 
+  <script type="module">
+import { db } from './js/firebase-config.js';
+import { collection, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+
+const grid = document.getElementById('teamGrid');
+const q = query(collection(db, 'team'), orderBy('displayOrder', 'asc'));
+onSnapshot(q, (snap) => {
+  if (snap.empty) {
+    grid.innerHTML = '<p style="color:var(--text-muted);text-align:center;width:100%;">Team information coming soon.</p>';
+    return;
+  }
+  grid.innerHTML = '';
+  snap.forEach(d => {
+    const m = d.data();
+    const card = document.createElement('div');
+    card.className = 'team-card fade-in';
+    const photoHtml = m.photoUrl
+      ? `<img src="${esc(m.photoUrl)}" alt="${esc(m.name)}" class="team-img" style="object-fit:cover;" onerror="this.outerHTML='<div class=\\'team-img\\'>\\u{1F9D1}</div>'">`
+      : `<div class="team-img">&#x1F9D1;</div>`;
+    card.innerHTML = `
+      ${photoHtml}
+      <div class="team-info">
+        <h3>${esc(m.name)}</h3>
+        <div class="role">${esc(m.role || '')}</div>
+        ${m.description ? `<p>${esc(m.description)}</p>` : ''}
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+  // Observe new cards for scroll animation
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) { entry.target.classList.add('visible'); observer.unobserve(entry.target); }
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('#teamGrid .team-card').forEach(el => observer.observe(el));
+});
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+</script>
   <script src="js/main.js"></script>
 </body>
 </html>
