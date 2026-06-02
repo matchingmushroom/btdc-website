@@ -1,6 +1,7 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
     function isAdmin() {
       return request.auth != null &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
@@ -12,25 +13,25 @@ service cloud.firestore {
     function isAuthed() {
       return request.auth != null;
     }
+
     match /valuations/{docId} {
       allow read, create, update: if isStaff() || isAdmin();
       allow delete: if isAdmin();
     }
+
     match /users/{uid} {
       allow read: if isAuthed() && (request.auth.uid == uid || isAdmin() || isStaff());
       allow write: if isAdmin();
     }
+
     match /public/{refNumber} {
       allow read: if true;
       allow write: if isStaff() || isAdmin();
       allow delete: if isAdmin();
     }
+
     match /counters/{docId} {
       allow read, write: if isStaff() || isAdmin();
-    }
-    match /bfis/{docId} {
-      allow read, create, update: if isStaff() || isAdmin();
-      allow delete: if isAdmin();
     }
   }
 }

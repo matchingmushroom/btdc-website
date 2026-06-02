@@ -43,6 +43,9 @@
           <input type="text" id="newUserName" placeholder="Full name" required style="padding:10px 14px;border:1px solid #ddd;border-radius:6px;flex:1;min-width:160px;">
           <input type="email" id="newUserEmail" placeholder="Email" required style="padding:10px 14px;border:1px solid #ddd;border-radius:6px;flex:1;min-width:200px;">
           <input type="password" id="newUserPassword" placeholder="Password" required style="padding:10px 14px;border:1px solid #ddd;border-radius:6px;flex:1;min-width:140px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.9rem;color:var(--primary);cursor:pointer;">
+            <input type="checkbox" id="newUserFieldStaff" checked> Field Staff
+          </label>
           <button type="submit" class="btn btn-primary" style="padding:10px 20px;">Create Staff</button>
         </form>
         <div id="userList">
@@ -180,7 +183,9 @@
         <div class="form-row">
           <div class="form-group">
             <label>Initiated By</label>
-            <input type="text" id="f_InitiatedBy">
+            <select id="f_InitiatedBy">
+              <option value="">-- Select --</option>
+            </select>
           </div>
           <div class="form-group">
             <label>Verified By</label>
@@ -262,36 +267,56 @@ window.unsubBfis = null;
 function startBfiListener() {
   const q = query(collection(db, BFIS_COLL), orderBy('createdAt', 'desc'));
   window.unsubBfis = onSnapshot(q, (snapshot) => {
-async function loadStaffCheckboxes() {
-  const container = document.getElementById('f_StaffCheckboxes');
-  if (!container) return;
-  try {
-    const snap = await getDocs(collection(db, USERS_COLL));
-    const staffUsers = [];
-    snap.forEach(d => { const u = d.data(); if (u.role === 'staff') staffUsers.push({ id: d.id, name: u.displayName || u.email }); });
-    if (!staffUsers.length) { container.innerHTML = '<p style="color:var(--text-light);font-size:0.88rem;width:100%;">No staff users found.</p>'; return; }
-    container.innerHTML = '';
-    staffUsers.forEach(s => {
-      const label = document.createElement('label');
-      label.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:0.88rem;cursor:pointer;padding:4px 8px;background:var(--accent);border-radius:6px;';
-      const cb = document.createElement('input');
-      cb.type = 'checkbox'; cb.value = s.name;
-      label.appendChild(cb);
-      label.appendChild(document.createTextNode(s.name));
-      container.appendChild(label);
-    });
-  } catch (err) {
-    container.innerHTML = '<p style="color:#dc3545;font-size:0.88rem;width:100%;">Error loading staff.</p>';
-  }
-}
-
-window.bfiData = [];
+    window.bfiData = [];
     snapshot.forEach(doc => {
       window.bfiData.push({ id: doc.id, ...doc.data() });
     });
     populateBfiSelect();
     renderBfiTable();
   });
+}
+
+async function loadStaffCheckboxes() {
+  const container = document.getElementById('f_StaffCheckboxes');
+  const initBy = document.getElementById('f_InitiatedBy');
+  if (!container) return;
+  try {
+    const snap = await getDocs(collection(db, USERS_COLL));
+    const fieldStaff = [];
+    const allStaff = [];
+    snap.forEach(d => {
+      const u = d.data();
+      if (u.role === 'staff') {
+        allStaff.push({ name: u.displayName || u.email });
+        if (u.fieldStaff) fieldStaff.push({ name: u.displayName || u.email });
+      }
+    });
+    if (!fieldStaff.length) {
+      container.innerHTML = '<p style="color:var(--text-light);font-size:0.88rem;width:100%;">No field staff found.</p>';
+    } else {
+      container.innerHTML = '';
+      fieldStaff.forEach(s => {
+        const label = document.createElement('label');
+        label.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:0.88rem;cursor:pointer;padding:4px 8px;background:var(--accent);border-radius:6px;';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox'; cb.value = s.name;
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(s.name));
+        container.appendChild(label);
+      });
+    }
+    if (initBy) {
+      initBy.innerHTML = '<option value="">-- Select --</option>';
+      allStaff.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.name;
+        opt.textContent = s.name;
+        initBy.appendChild(opt);
+      });
+    }
+  } catch (err) {
+    container.innerHTML = '<p style="color:#dc3545;font-size:0.88rem;width:100%;">Error loading staff.</p>';
+  }
 }
 
 function populateBfiSelect() {
@@ -603,13 +628,15 @@ async function loadUsers() {
   try {
     const snap = await getDocs(collection(db, USERS_COLL));
     if (snap.empty) { el.innerHTML = '<p style="color:var(--text-light);">No users found.</p>'; return; }
-    let html = '<table class="admin-table"><thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Action</th></tr></thead><tbody>';
+    let html = '<table class="admin-table"><thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Field Staff</th><th>Action</th></tr></thead><tbody>';
     snap.forEach(d => {
       const u = d.data();
+      const isField = u.fieldStaff;
       html += `<tr>
         <td>${esc(u.email)}</td>
         <td>${esc(u.displayName || '-')}</td>
         <td><span class="status-badge" style="background:${u.role==='admin'?'#cce5ff':'#d4edda'};color:${u.role==='admin'?'#004085':'#155724'};">${esc(u.role)}</span></td>
+        <td>${u.role !== 'admin' ? `<button class="btn-sm" style="background:${isField?'#28a745':'#6c757d'};color:#fff;" onclick="toggleFieldStaff('${esc(d.id)}', ${!isField})">${isField?'Yes':'No'}</button>` : '-'}</td>
         <td>${u.role !== 'admin' ? `<button class="btn-sm" style="background:#dc3545;color:#fff;" onclick="removeUser('${esc(d.id)}')">Remove</button>` : '-'}</td>
       </tr>`;
     });
@@ -638,7 +665,7 @@ window.createStaffUser = async function(e) {
     if (data.error) throw new Error(data.error.message);
     const uid = data.localId;
     await setDoc(doc(db, USERS_COLL, uid), {
-      email, displayName: name, role: 'staff', createdAt: serverTimestamp()
+      email, displayName: name, role: 'staff', fieldStaff: document.getElementById('newUserFieldStaff').checked, createdAt: serverTimestamp()
     });
     document.getElementById('createUserForm').reset();
     showToast('Staff user ' + email + ' created', 'success');
@@ -648,6 +675,16 @@ window.createStaffUser = async function(e) {
   }
   btn.textContent = 'Create Staff';
   btn.disabled = false;
+};
+
+window.toggleFieldStaff = async function(uid, val) {
+  try {
+    await updateDoc(doc(db, USERS_COLL, uid), { fieldStaff: val });
+    showToast('Updated', 'success');
+    loadUsers();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
 };
 
 window.removeUser = async function(uid) {

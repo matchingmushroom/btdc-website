@@ -141,7 +141,9 @@
         <div class="form-row">
           <div class="form-group">
             <label>Initiated By</label>
-            <input type="text" id="f_InitiatedBy">
+            <select id="f_InitiatedBy">
+              <option value="">-- Select --</option>
+            </select>
           </div>
           <div class="form-group">
             <label>Verified By</label>
@@ -184,7 +186,7 @@ onAuthStateChanged(auth, async (user) => {
   const check = document.getElementById('authCheck');
   if (!user) { window.location.href = 'login.html'; return; }
   const snap = await getDoc(doc(db, 'users', user.uid));
-  if (!snap.exists() || snap.data().role !== 'staff') {
+  if (!snap.exists() || snap.data().role !== 'staff' || !snap.data().fieldStaff) {
     await signOut(auth);
     window.location.href = 'login.html';
     return;
@@ -280,22 +282,42 @@ window.renderTable = function() {
 
 async function loadStaffCheckboxes() {
   const container = document.getElementById('f_StaffCheckboxes');
+  const initBy = document.getElementById('f_InitiatedBy');
   if (!container) return;
   try {
     const snap = await getDocs(collection(db, 'users'));
-    const staffUsers = [];
-    snap.forEach(d => { const u = d.data(); if (u.role === 'staff') staffUsers.push({ name: u.displayName || u.email }); });
-    if (!staffUsers.length) { container.innerHTML = '<p style="color:var(--text-light);font-size:0.88rem;width:100%;">No staff users found.</p>'; return; }
-    container.innerHTML = '';
-    staffUsers.forEach(s => {
-      const label = document.createElement('label');
-      label.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:0.88rem;cursor:pointer;padding:4px 8px;background:var(--accent);border-radius:6px;';
-      const cb = document.createElement('input');
-      cb.type = 'checkbox'; cb.value = s.name;
-      label.appendChild(cb);
-      label.appendChild(document.createTextNode(s.name));
-      container.appendChild(label);
+    const fieldStaff = [];
+    const allStaff = [];
+    snap.forEach(d => {
+      const u = d.data();
+      if (u.role === 'staff') {
+        allStaff.push({ name: u.displayName || u.email });
+        if (u.fieldStaff) fieldStaff.push({ name: u.displayName || u.email });
+      }
     });
+    if (!fieldStaff.length) {
+      container.innerHTML = '<p style="color:var(--text-light);font-size:0.88rem;width:100%;">No field staff found.</p>';
+    } else {
+      container.innerHTML = '';
+      fieldStaff.forEach(s => {
+        const label = document.createElement('label');
+        label.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:0.88rem;cursor:pointer;padding:4px 8px;background:var(--accent);border-radius:6px;';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox'; cb.value = s.name;
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(s.name));
+        container.appendChild(label);
+      });
+    }
+    if (initBy) {
+      initBy.innerHTML = '<option value="">-- Select --</option>';
+      allStaff.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.name;
+        opt.textContent = s.name;
+        initBy.appendChild(opt);
+      });
+    }
   } catch {
     container.innerHTML = '<p style="color:#dc3545;font-size:0.88rem;width:100%;">Error loading staff.</p>';
   }
