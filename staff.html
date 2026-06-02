@@ -186,7 +186,7 @@ onAuthStateChanged(auth, async (user) => {
   const check = document.getElementById('authCheck');
   if (!user) { window.location.href = 'login.html'; return; }
   const snap = await getDoc(doc(db, 'users', user.uid));
-  if (!snap.exists() || snap.data().role !== 'staff' || !snap.data().fieldStaff) {
+  if (!snap.exists() || snap.data().role !== 'staff') {
     await signOut(auth);
     window.location.href = 'login.html';
     return;
