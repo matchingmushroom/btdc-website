@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Track Valuation - Balaji Technical Designing and Consultancy</title>
+  <meta name="description" content="Check if your property valuation was done by BTDC. Search by name, reference number, or valuation ID.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="assets/icons/favicon.ico" type="image/x-icon">
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <a href="index.html" class="logo"><span>BTDC</span></a>
+      <button class="hamburger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="services.html">Services</a>
+        <a href="valuation-checker.html">Valuation Checker</a>
+        <a href="track-valuation.html" class="active">Track Valuation</a>
+        <a href="contact.html">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero" style="padding: 110px 0 50px;">
+    <div class="container" style="text-align: center;">
+      <h1 style="font-size: 2.2rem;">Track Your <span>Valuation</span></h1>
+      <p style="max-width: 700px; margin: 16px auto 0;">Check the status of your property valuation. Search by your name, reference number, or valuation ID.</p>
+    </div>
+  </section>
+
+  <section class="section" style="background:var(--accent);">
+    <div class="container" style="max-width: 800px;">
+      <div class="contact-form" style="background:var(--white);">
+        <div class="form-group" style="margin-bottom:16px;">
+          <label for="trackQuery">Search by Name, Reference Number, or Valuation ID</label>
+          <input type="text" id="trackQuery" placeholder="Enter your name, ref number (e.g. BTDC-001), or valuation ID" style="width:100%;padding:14px;font-size:1rem;border:1px solid #ddd;border-radius:8px;">
+        </div>
+        <button class="btn btn-primary" onclick="trackValuation()" id="trackBtn" style="width:100%;">Search</button>
+      </div>
+
+      <div id="trackResults" style="margin-top:30px;display:none;"></div>
+      <div id="trackError" style="margin-top:16px;color:#dc3545;display:none;text-align:center;"></div>
+      <div id="trackLoading" style="margin-top:30px;text-align:center;color:var(--text-light);display:none;">Searching...</div>
+    </div>
+  </section>
+
+  <section class="section" style="background:var(--white);text-align:center;">
+    <div class="container">
+      <h2 class="section-title">Didn't Find Your Valuation?</h2>
+      <p class="section-subtitle">If you had a valuation done by BTDC and can't find it here, contact us directly.</p>
+      <a href="contact.html" class="btn btn-primary">Contact Us</a>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-about">
+          <h3>Balaji Technical <span>Designing &amp; Consultancy</span></h3>
+          <p>Established in 2079 B.S., BTDC is a trusted engineering and consultancy firm.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="valuation-checker.html">Valuation Checker</a></li>
+            <li><a href="track-valuation.html">Track Valuation</a></li>
+            <li><a href="contact.html">Contact</a></li>
+          </ul>
+        </div>
+        <div class="footer-links">
+          <h4>Services</h4>
+          <ul>
+            <li><a href="services.html">Property Valuation</a></li>
+            <li><a href="services.html">Insurance Surveyor</a></li>
+            <li><a href="services.html">Engineering Consultancy</a></li>
+          </ul>
+        </div>
+        <div class="footer-links">
+          <h4>Contact</h4>
+          <ul>
+            <li><a>Birgunj, Nepal</a></li>
+            <li><a href="tel:+9779843691905">+977 9843691905</a></li>
+            <li><a href="mailto:info.btdc@gmail.com">info.btdc@gmail.com</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Balaji Technical Designing and Consultancy. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script src="js/track.js"></script>
+</body>
+</html>

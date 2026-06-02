@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - BTDC Valuation Management</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="assets/icons/favicon.ico" type="image/x-icon">
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <a href="index.html" class="logo"><span>BTDC</span> Admin</a>
+      <button class="hamburger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="track-valuation.html">Track Valuation</a>
+        <a href="admin.html" class="active">Admin</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="section" style="padding-top: 100px;">
+    <div class="container">
+
+      <div id="loginScreen" class="admin-login">
+        <div class="login-box">
+          <h2>Admin Login</h2>
+          <p style="color:var(--text-light);margin-bottom:20px;">Enter password to manage valuations</p>
+          <div class="form-group">
+            <input type="password" id="adminPassword" placeholder="Enter admin password" style="max-width:350px;">
+          </div>
+          <div id="loginError" style="color:#dc3545;margin-bottom:12px;display:none;"></div>
+          <button class="btn btn-primary" onclick="adminLogin()">Login</button>
+        </div>
+      </div>
+
+      <div id="adminDashboard" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:24px;">
+          <h2 style="color:var(--primary);margin:0;">Valuation Records</h2>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <input type="text" id="adminSearch" placeholder="Search records..." oninput="renderAdminTable()" style="padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;width:220px;">
+            <button class="btn btn-primary" onclick="showAddModal()">+ Add New</button>
+            <button class="btn btn-outline" style="border-color:var(--primary);color:var(--primary);" onclick="adminLogout()">Logout</button>
+          </div>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table class="admin-table" id="adminTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Customer</th>
+                <th>Ref #</th>
+                <th>Property</th>
+                <th>Type</th>
+                <th>Date</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="adminTableBody"></tbody>
+          </table>
+        </div>
+        <p id="noRecords" style="text-align:center;color:var(--text-light);padding:40px;display:none;">No records found.</p>
+        <div id="loadingSpinner" style="text-align:center;padding:40px;color:var(--text-light);">Loading...</div>
+      </div>
+    </div>
+  </section>
+
+  <div id="addModal" class="modal-overlay" style="display:none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">Add Valuation</h3>
+        <button class="modal-close" onclick="closeModal('addModal')">&times;</button>
+      </div>
+      <form id="valuationForm" onsubmit="saveValuation(event)">
+        <input type="hidden" id="editId" value="">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Customer Name *</label>
+            <input type="text" id="f_CustomerName" required>
+          </div>
+          <div class="form-group">
+            <label>Ref Number *</label>
+            <input type="text" id="f_RefNumber" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Property Address *</label>
+          <input type="text" id="f_PropertyAddress" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Valuation Type *</label>
+            <select id="f_ValuationType">
+              <option>Residential</option>
+              <option>Commercial</option>
+              <option>Industrial</option>
+              <option>Land</option>
+              <option>Agricultural</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Valuation Date *</label>
+            <input type="date" id="f_ValuationDate" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Amount (NPR) *</label>
+            <input type="number" id="f_ValuationAmount" required>
+          </div>
+          <div class="form-group">
+            <label>Status *</label>
+            <select id="f_Status">
+              <option>Pending</option>
+              <option>In Progress</option>
+              <option>Completed</option>
+              <option>Delivered</option>
+              <option>Cancelled</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Initiated By</label>
+            <input type="text" id="f_InitiatedBy">
+          </div>
+          <div class="form-group">
+            <label>Verified By</label>
+            <input type="text" id="f_VerifiedBy">
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px;">
+          <button type="button" class="btn btn-outline" style="border-color:var(--primary);color:var(--primary);" onclick="closeModal('addModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveBtn">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-about">
+          <h3>Balaji Technical <span>Designing &amp; Consultancy</span></h3>
+          <p>Established in 2079 B.S., BTDC is a trusted engineering and consultancy firm.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="track-valuation.html">Track Valuation</a></li>
+            <li><a href="contact.html">Contact</a></li>
+          </ul>
+        </div>
+        <div class="footer-links">
+          <h4>Contact</h4>
+          <ul>
+            <li><a>Birgunj, Nepal</a></li>
+            <li><a href="tel:+9779843691905">+977 9843691905</a></li>
+            <li><a href="mailto:info.btdc@gmail.com">info.btdc@gmail.com</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Balaji Technical Designing and Consultancy. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

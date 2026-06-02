@@ -1,99 +1,173 @@
 const SHEET_ID = 'YOUR_GOOGLE_SHEET_ID';
-const CONTACT_SHEET = 'Contact';
-const VALUATION_SHEET = 'Valuations';
+const SHEET_NAME = 'Valuations';
+const ADMIN_PASSWORD = 'btdc@2026#';
+const HEADERS = ['ValuationID','CustomerName','RefNumber','PropertyAddress','ValuationType','ValuationDate','ValuationAmount','Status','InitiatedBy','VerifiedBy','CreatedAt','UpdatedAt'];
 
 function doGet(e) {
-  return handleCors(e);
+  try {
+    if (!e || !e.parameter || !e.parameter.action) {
+      return jsonResponse({ error: 'Missing action parameter' });
+    }
+    const action = e.parameter.action;
+    if (action === 'getValuations') {
+      if (e.parameter.password !== ADMIN_PASSWORD) return jsonResponse({ error: 'Unauthorized' });
+      return jsonResponse(getAllValuations());
+    }
+    if (action === 'getValuation') {
+      const q = (e.parameter.q || '').trim().toLowerCase();
+      if (!q) return jsonResponse({ error: 'Search query required' });
+      return jsonResponse(searchValuation(q));
+    }
+    if (action === 'getNextId') {
+      if (e.parameter.password !== ADMIN_PASSWORD) return jsonResponse({ error: 'Unauthorized' });
+      return jsonResponse({ nextId: getNextValuationId() });
+    }
+    if (action === 'verifyPassword') {
+      return jsonResponse({ valid: e.parameter.password === ADMIN_PASSWORD });
+    }
+    return jsonResponse({ error: 'Unknown action' });
+  } catch (err) {
+    return jsonResponse({ error: err.message });
+  }
 }
 
 function doPost(e) {
-  return handleCors(e);
-}
-
-function handleCors(e) {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
-  if (e && e.parameter && e.parameter.action === 'contact') {
-    return handleContact(e, headers);
-  }
-  if (e && e.parameter && e.parameter.action === 'valuation') {
-    return handleValuation(e, headers);
-  }
-  return ContentService.createTextOutput(JSON.stringify({ error: 'Invalid action' }))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function handleContact(e, headers) {
   try {
-    const ss = SpreadsheetApp.openById(SHEET_ID);
-    const sheet = ss.getSheetByName(CONTACT_SHEET) || ss.insertSheet(CONTACT_SHEET);
-    if (sheet.getLastRow() === 0) {
-      sheet.appendRow(['Timestamp', 'Name', 'Email', 'Phone', 'Message']);
+    if (!e || !e.parameter || !e.parameter.action) {
+      return jsonResponse({ error: 'Missing action parameter' });
     }
-    sheet.appendRow([
-      new Date(),
-      e.parameter.name || '',
-      e.parameter.email || '',
-      e.parameter.phone || '',
-      e.parameter.message || ''
-    ]);
-    return buildResponse({ success: true, message: 'Thank you! We will contact you soon.' }, headers);
+    if (e.parameter.password !== ADMIN_PASSWORD) {
+      return jsonResponse({ error: 'Unauthorized' });
+    }
+    const action = e.parameter.action;
+    if (action === 'addValuation') return jsonResponse(addValuation(e.parameter));
+    if (action === 'updateValuation') return jsonResponse(updateValuation(e.parameter));
+    if (action === 'deleteValuation') return jsonResponse(deleteValuation(e.parameter));
+    return jsonResponse({ error: 'Unknown action' });
   } catch (err) {
-    return buildResponse({ success: false, message: 'Error: ' + err.message }, headers);
+    return jsonResponse({ error: err.message });
   }
 }
 
-function handleValuation(e, headers) {
-  try {
-    const propertyType = e.parameter.propertyType || '';
-    const location = e.parameter.location || '';
-    const landArea = parseFloat(e.parameter.landArea) || 0;
-    const builtUpArea = parseFloat(e.parameter.builtUpArea) || 0;
-    const condition = e.parameter.condition || 'average';
-    const name = e.parameter.name || '';
-    const email = e.parameter.email || '';
-    const phone = e.parameter.phone || '';
-
-    const baseRates = {
-      residential: 5000,
-      commercial: 8000,
-      industrial: 6000,
-      land: 3000,
-      agricultural: 2000
-    };
-    const conditionFactors = { poor: 0.7, average: 1.0, good: 1.2, excellent: 1.4 };
-    const locationFactors = { urban: 1.5, suburban: 1.0, rural: 0.7 };
-
-    const baseRate = baseRates[propertyType] || 5000;
-    const condFactor = conditionFactors[condition] || 1.0;
-    const locFactor = locationFactors[location] || 1.0;
-
-    const estimatedValue = (landArea * baseRate * locFactor * condFactor) + (builtUpArea * baseRate * 1.5 * condFactor);
-    const rangeLow = Math.round(estimatedValue * 0.9);
-    const rangeHigh = Math.round(estimatedValue * 1.1);
-
-    const ss = SpreadsheetApp.openById(SHEET_ID);
-    const sheet = ss.getSheetByName(VALUATION_SHEET) || ss.insertSheet(VALUATION_SHEET);
-    if (sheet.getLastRow() === 0) {
-      sheet.appendRow(['Timestamp', 'Name', 'Email', 'Phone', 'PropertyType', 'Location', 'LandArea(sqft)', 'BuiltUpArea(sqft)', 'Condition', 'EstimateLow', 'EstimateHigh']);
-    }
-    sheet.appendRow([new Date(), name, email, phone, propertyType, location, landArea, builtUpArea, condition, rangeLow, rangeHigh]);
-
-    return buildResponse({
-      success: true,
-      estimate: { low: rangeLow, high: rangeHigh, currency: 'NPR' },
-      propertyType, location, landArea, builtUpArea, condition
-    }, headers);
-  } catch (err) {
-    return buildResponse({ success: false, message: 'Error: ' + err.message }, headers);
+function getSheet() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_NAME);
+    sheet.appendRow(HEADERS);
   }
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(HEADERS);
+  }
+  return sheet;
 }
 
-function buildResponse(data, headers) {
-  const output = ContentService.createTextOutput(JSON.stringify(data))
+function getAllValuations() {
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return { valuations: [] };
+  const rows = [];
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const obj = {};
+    HEADERS.forEach((h, idx) => { obj[h] = row[idx] !== undefined ? String(row[idx]) : ''; });
+    rows.push(obj);
+  }
+  return { valuations: rows };
+}
+
+function searchValuation(q) {
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return { valuations: [] };
+  const results = [];
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const matchFields = [String(row[0] || '').toLowerCase(), String(row[1] || '').toLowerCase(), String(row[2] || '').toLowerCase(), String(row[7] || '').toLowerCase()];
+    if (matchFields.some(f => f.includes(q))) {
+      const obj = {};
+      HEADERS.forEach((h, idx) => { obj[h] = row[idx] !== undefined ? String(row[idx]) : ''; });
+      results.push(obj);
+    }
+  }
+  return { valuations: results };
+}
+
+function addValuation(params) {
+  const sheet = getSheet();
+  const now = new Date().toISOString();
+  const row = [
+    getNextValuationId(),
+    params.CustomerName || '',
+    params.RefNumber || '',
+    params.PropertyAddress || '',
+    params.ValuationType || '',
+    params.ValuationDate || '',
+    params.ValuationAmount || '',
+    params.Status || 'Pending',
+    params.InitiatedBy || '',
+    params.VerifiedBy || '',
+    now, now
+  ];
+  sheet.appendRow(row);
+  return { success: true, message: 'Valuation added', id: row[0] };
+}
+
+function updateValuation(params) {
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+  const targetId = params.ValuationID;
+  if (!targetId) return { success: false, message: 'ValuationID required' };
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(targetId)) {
+      const now = new Date().toISOString();
+      const row = [
+        targetId,
+        params.CustomerName || data[i][1],
+        params.RefNumber || data[i][2],
+        params.PropertyAddress || data[i][3],
+        params.ValuationType || data[i][4],
+        params.ValuationDate || data[i][5],
+        params.ValuationAmount || data[i][6],
+        params.Status || data[i][7],
+        params.InitiatedBy || data[i][8],
+        params.VerifiedBy || data[i][9],
+        data[i][10], now
+      ];
+      sheet.getRange(i + 1, 1, 1, row.length).setValues([row]);
+      return { success: true, message: 'Valuation updated' };
+    }
+  }
+  return { success: false, message: 'Valuation not found' };
+}
+
+function deleteValuation(params) {
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+  const targetId = params.ValuationID;
+  if (!targetId) return { success: false, message: 'ValuationID required' };
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(targetId)) {
+      sheet.deleteRow(i + 1);
+      return { success: true, message: 'Valuation deleted' };
+    }
+  }
+  return { success: false, message: 'Valuation not found' };
+}
+
+function getNextValuationId() {
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+  let maxId = 0;
+  for (let i = 1; i < data.length; i++) {
+    const id = parseInt(data[i][0], 10);
+    if (!isNaN(id) && id > maxId) maxId = id;
+  }
+  const next = maxId + 1;
+  return String(next).padStart(4, '0');
+}
+
+function jsonResponse(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
-  return output;
 }
