@@ -108,6 +108,16 @@
         </div>
         <div class="form-row">
           <div class="form-group">
+            <label>BFI / Bank Name *</label>
+            <input type="text" id="f_BfiName" required>
+          </div>
+          <div class="form-group">
+            <label>Branch *</label>
+            <input type="text" id="f_BfiBranch" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
             <label>Initiated By</label>
             <input type="text" id="f_InitiatedBy">
           </div>
@@ -226,6 +236,8 @@ window.editValuation = function(id) {
   document.getElementById('f_ValuationDate').value = rec.valuationDate || '';
   document.getElementById('f_ValuationAmount').value = rec.valuationAmount || '';
   document.getElementById('f_Status').value = rec.status || 'Pending';
+  document.getElementById('f_BfiName').value = rec.bfiName || '';
+  document.getElementById('f_BfiBranch').value = rec.bfiBranch || '';
   document.getElementById('f_InitiatedBy').value = rec.initiatedBy || '';
   document.getElementById('valuationModal').style.display = 'flex';
 };
@@ -247,6 +259,8 @@ window.saveValuation = async function(e) {
     valuationDate: document.getElementById('f_ValuationDate').value,
     valuationAmount: Number(document.getElementById('f_ValuationAmount').value),
     status: document.getElementById('f_Status').value,
+    bfiName: document.getElementById('f_BfiName').value.trim(),
+    bfiBranch: document.getElementById('f_BfiBranch').value.trim(),
     initiatedBy: document.getElementById('f_InitiatedBy').value.trim(),
     updatedAt: serverTimestamp()
   };
@@ -297,7 +311,9 @@ async function setPublicDoc(refNum, data) {
     valuationType: data.valuationType,
     valuationAmount: data.valuationAmount,
     initiatedBy: data.initiatedBy,
-    verifiedBy: existing.exists() ? existing.data().verifiedBy || '' : ''
+    verifiedBy: existing.exists() ? existing.data().verifiedBy || '' : '',
+    bfiName: data.bfiName || (existing.exists() ? existing.data().bfiName || '' : ''),
+    bfiBranch: data.bfiBranch || (existing.exists() ? existing.data().bfiBranch || '' : '')
   }, { merge: true });
 }
 

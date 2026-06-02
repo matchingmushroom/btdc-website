@@ -133,6 +133,16 @@
         </div>
         <div class="form-row">
           <div class="form-group">
+            <label>BFI / Bank Name *</label>
+            <input type="text" id="f_BfiName" required>
+          </div>
+          <div class="form-group">
+            <label>Branch *</label>
+            <input type="text" id="f_BfiBranch" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
             <label>Initiated By</label>
             <input type="text" id="f_InitiatedBy">
           </div>
@@ -261,6 +271,8 @@ window.editValuation = function(id) {
   document.getElementById('f_ValuationDate').value = rec.valuationDate || '';
   document.getElementById('f_ValuationAmount').value = rec.valuationAmount || '';
   document.getElementById('f_Status').value = rec.status || 'Pending';
+  document.getElementById('f_BfiName').value = rec.bfiName || '';
+  document.getElementById('f_BfiBranch').value = rec.bfiBranch || '';
   document.getElementById('f_InitiatedBy').value = rec.initiatedBy || '';
   document.getElementById('f_VerifiedBy').value = rec.verifiedBy || '';
   document.getElementById('valuationModal').style.display = 'flex';
@@ -283,6 +295,8 @@ window.saveValuation = async function(e) {
     valuationDate: document.getElementById('f_ValuationDate').value,
     valuationAmount: Number(document.getElementById('f_ValuationAmount').value),
     status: document.getElementById('f_Status').value,
+    bfiName: document.getElementById('f_BfiName').value.trim(),
+    bfiBranch: document.getElementById('f_BfiBranch').value.trim(),
     initiatedBy: document.getElementById('f_InitiatedBy').value.trim(),
     verifiedBy: document.getElementById('f_VerifiedBy').value.trim(),
     updatedAt: serverTimestamp()
@@ -304,7 +318,9 @@ window.saveValuation = async function(e) {
           valuationType: data.valuationType,
           valuationAmount: data.valuationAmount,
           verifiedBy: data.verifiedBy,
-          initiatedBy: data.initiatedBy
+          initiatedBy: data.initiatedBy,
+          bfiName: data.bfiName,
+          bfiBranch: data.bfiBranch
         }, { merge: true });
       }
       showToast('Valuation updated', 'success');
@@ -326,7 +342,9 @@ window.saveValuation = async function(e) {
           valuationType: data.valuationType,
           valuationAmount: data.valuationAmount,
           verifiedBy: data.verifiedBy,
-          initiatedBy: data.initiatedBy
+          initiatedBy: data.initiatedBy,
+          bfiName: data.bfiName,
+          bfiBranch: data.bfiBranch
         });
       }
       showToast('Valuation added (ID: ' + nextId + ')', 'success');
@@ -500,6 +518,8 @@ window.startMigration = async function() {
         initiatedBy: row.InitiatedBy || '',
         verifiedBy: row.VerifiedBy || '',
         verifiedAt: row.VerifiedBy ? new Date() : null,
+        bfiName: row.BfiName || '',
+        bfiBranch: row.BfiBranch || '',
         createdBy: 'migration',
         createdAt: new Date(),
         updatedAt: new Date()
@@ -516,7 +536,9 @@ window.startMigration = async function() {
           valuationAmount: row.ValuationAmount ? Number(row.ValuationAmount) : 0,
           initiatedBy: row.InitiatedBy || '',
           verifiedBy: row.VerifiedBy || '',
-          verifiedAt: row.VerifiedBy ? new Date() : null
+          verifiedAt: row.VerifiedBy ? new Date() : null,
+          bfiName: row.BfiName || '',
+          bfiBranch: row.BfiBranch || ''
         });
       }
 

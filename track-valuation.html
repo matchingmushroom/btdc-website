@@ -159,11 +159,13 @@ window.lookupValuation = async function() {
           <div class="track-field"><strong>Reference Number:</strong> ${esc(refNum)}</div>
           <div class="track-field"><strong>Amount:</strong> ${amount}</div>
           <div class="track-field"><strong>Date:</strong> ${esc(d.valuationDate || '-')}</div>
+          <div class="track-field"><strong>BFI / Bank:</strong> ${esc(d.bfiName || '-')}</div>
+          <div class="track-field"><strong>Branch:</strong> ${esc(d.bfiBranch || '-')}</div>
           <div class="track-field"><strong>Initiated By:</strong> ${esc(d.initiatedBy || '-')}</div>
         </div>
         <div style="padding:14px 20px;border-top:1px solid #eee;background:${isVerified ? '#d4edda' : '#fff3cd'};border-radius:0 0 8px 8px;">
           ${isVerified
-            ? `<p style="color:#155724;font-weight:600;font-size:0.92rem;">&#x2705; This report has been verified by ${esc(d.verifiedBy)}. It is an authentic BTDC valuation document.</p>`
+            ? `<p style="color:#155724;font-weight:600;font-size:0.92rem;">&#x2705; The mentioned <strong>${esc(d.valuationType || 'valuation')}</strong> has been done by <strong>Balaji Technical Designing and Consultancy</strong> on request of <strong>${esc(d.bfiName || 'N/A')}</strong>, <strong>${esc(d.bfiBranch || 'N/A')}</strong>. It is an authentic BTDC valuation document.</p>`
             : `<p style="color:#856404;font-weight:600;font-size:0.92rem;">&#x26A0;&#xFE0F; This valuation is pending verification by BTDC. Check back later or contact us.</p>`
           }
         </div>
