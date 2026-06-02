@@ -10,7 +10,10 @@
 <body>
   <header>
     <div class="header-inner">
-      <a href="index.html" class="logo"><span>BTDC</span> Staff</a>
+      <a href="index.html" class="logo">
+        <span class="logo-svg">B</span>
+        <span>BTDC Staff</span>
+      </a>
       <button class="hamburger" aria-label="Menu">
         <span></span><span></span><span></span>
       </button>
@@ -20,21 +23,20 @@
     </div>
   </header>
 
-  <section class="section" style="padding-top:100px;">
+  <section class="section admin-section">
     <div class="container" id="staffContent" style="display:none;">
-
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:24px;">
-        <div>
-          <h2 style="color:var(--primary);margin:0;">Valuation Records</h2>
-          <p id="userInfo" style="color:var(--text-light);font-size:0.88rem;margin-top:4px;"></p>
+      <div class="panel-header">
+        <div class="panel-header-left">
+          <h2>Valuation Records</h2>
+          <p id="userInfo"></p>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <input type="text" id="staffSearch" placeholder="Search records..." oninput="renderTable()" style="padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;width:200px;">
+        <div class="panel-actions">
+          <input type="text" id="staffSearch" placeholder="Search records..." oninput="renderTable()" class="panel-search">
           <button class="btn btn-primary" onclick="showAddModal()">+ Add New</button>
         </div>
       </div>
 
-      <div style="overflow-x:auto;">
+      <div class="table-wrapper">
         <table class="admin-table" id="staffTable">
           <thead>
             <tr>
@@ -52,11 +54,11 @@
           <tbody id="staffTableBody"></tbody>
         </table>
       </div>
-      <p id="noRecords" style="text-align:center;color:var(--text-light);padding:40px;display:none;">No records found.</p>
-      <div id="loadingSpinner" style="text-align:center;padding:40px;color:var(--text-light);">Loading...</div>
+      <p id="noRecords" class="no-records" style="display:none;">No records found.</p>
+      <div id="loadingSpinner" class="loading-spinner">Loading...</div>
     </div>
-    <div id="authCheck" style="display:none;text-align:center;padding:60px 20px;">
-      <p style="color:var(--text-light);">Checking authorization...</p>
+    <div id="authCheck" class="auth-check">
+      <p>Checking authorization...</p>
     </div>
   </section>
 
@@ -134,8 +136,8 @@
         </div>
         <div class="form-group">
           <label>Site Visit Done By</label>
-          <div id="f_StaffCheckboxes" style="display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px;border:1px solid #ddd;border-radius:8px;max-height:150px;overflow-y:auto;">
-            <p style="color:var(--text-light);font-size:0.88rem;width:100%;">Loading staff...</p>
+          <div id="f_StaffCheckboxes" class="staff-checkboxes">
+            <p style="color:var(--text-muted);font-size:0.88rem;width:100%;">Loading staff...</p>
           </div>
         </div>
         <div class="form-row">
@@ -147,11 +149,11 @@
           </div>
           <div class="form-group">
             <label>Verified By</label>
-            <input type="text" id="f_VerifiedBy" disabled style="background:#eee;cursor:not-allowed;">
+            <input type="text" id="f_VerifiedBy" disabled style="background:#eef2f6;cursor:not-allowed;">
           </div>
         </div>
-        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px;">
-          <button type="button" class="btn btn-outline" style="border-color:var(--primary);color:var(--primary);" onclick="closeModal()">Cancel</button>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" style="border-color:var(--primary-dark);color:var(--primary-dark);background:var(--white);" onclick="closeModal()">Cancel</button>
           <button type="submit" class="btn btn-primary" id="saveBtn">Save</button>
         </div>
       </form>
@@ -170,7 +172,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import {
   collection, query, orderBy, onSnapshot,
   addDoc, setDoc, updateDoc, doc, getDoc,
-  runTransaction, serverTimestamp
+  runTransaction, serverTimestamp, getDocs
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
 const COLL = 'valuations';
@@ -296,12 +298,12 @@ async function loadStaffCheckboxes() {
       }
     });
     if (!fieldStaff.length) {
-      container.innerHTML = '<p style="color:var(--text-light);font-size:0.88rem;width:100%;">No field staff found.</p>';
+      container.innerHTML = '<p style="color:var(--text-muted);font-size:0.88rem;width:100%;">No field staff found.</p>';
     } else {
       container.innerHTML = '';
       fieldStaff.forEach(s => {
         const label = document.createElement('label');
-        label.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:0.88rem;cursor:pointer;padding:4px 8px;background:var(--accent);border-radius:6px;';
+        label.className = 'staff-checkbox-label';
         const cb = document.createElement('input');
         cb.type = 'checkbox'; cb.value = s.name;
         label.appendChild(cb);
@@ -319,7 +321,7 @@ async function loadStaffCheckboxes() {
       });
     }
   } catch {
-    container.innerHTML = '<p style="color:#dc3545;font-size:0.88rem;width:100%;">Error loading staff.</p>';
+    container.innerHTML = '<p style="color:var(--error);font-size:0.88rem;width:100%;">Error loading staff.</p>';
   }
 }
 
@@ -469,11 +471,7 @@ function esc(s) { const d = document.createElement('div'); d.textContent = s == 
 window.showToast = function(msg, type) {
   const t = document.createElement('div');
   t.textContent = msg;
-  Object.assign(t.style, {
-    position: 'fixed', bottom: '24px', right: '24px', padding: '14px 24px', borderRadius: '8px',
-    color: '#fff', fontSize: '0.92rem', zIndex: '9999', boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-    background: type === 'success' ? '#28a745' : '#dc3545', animation: 'slideUp 0.3s ease', maxWidth: '400px'
-  });
+  t.className = 'toast ' + (type === 'success' ? 'success' : 'error');
   document.body.appendChild(t);
   setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 300); }, 4000);
 };

@@ -18,6 +18,12 @@ function initHamburger() {
         hamburger.classList.remove('active');
       }
     });
+    document.querySelectorAll('.nav-links a').forEach(link => {
+      link.addEventListener('click', () => {
+        nav.classList.remove('open');
+        hamburger.classList.remove('active');
+      });
+    });
   }
 }
 
@@ -26,8 +32,6 @@ function initScrollAnimations() {
   style.textContent = `
     @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    .fade-in { opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease, transform 0.6s ease; }
-    .fade-in.visible { opacity: 1; transform: translateY(0); }
   `;
   document.head.appendChild(style);
   const observer = new IntersectionObserver((entries) => {
@@ -35,7 +39,7 @@ function initScrollAnimations() {
       if (entry.isIntersecting) { entry.target.classList.add('visible'); observer.unobserve(entry.target); }
     });
   }, { threshold: 0.1 });
-  document.querySelectorAll('.service-card, .mv-card, .team-card, .section-title, .service-detail-card').forEach(el => {
+  document.querySelectorAll('.service-card, .mv-card, .team-card, .section-title, .service-detail-card, .value-tag, .stat-item').forEach(el => {
     el.classList.add('fade-in'); observer.observe(el);
   });
 }

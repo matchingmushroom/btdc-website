@@ -12,6 +12,7 @@
   <header>
     <div class="header-inner">
       <a href="index.html" class="logo">
+        <span class="logo-svg">B</span>
         <span>BTDC</span>
       </a>
       <button class="hamburger" aria-label="Menu">
@@ -21,7 +22,6 @@
         <a href="index.html">Home</a>
         <a href="about.html">About</a>
         <a href="services.html">Services</a>
-
         <a href="track-valuation.html">Track Valuation</a>
         <a href="contact.html" class="active">Contact</a>
         <a href="login.html">Login</a>
@@ -29,10 +29,10 @@
     </div>
   </header>
 
-  <section class="hero" style="padding: 110px 0 50px;">
+  <section class="hero" style="padding: 120px 0 60px; min-height: auto;">
     <div class="container" style="text-align: center;">
-      <h1 style="font-size: 2.2rem;">Contact <span>Us</span></h1>
-      <p style="max-width: 700px; margin: 16px auto 0;">Get in touch with BTDC for valuations, audits, and engineering consultancy services.</p>
+      <h1 style="font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800;">Contact <span style="color: var(--gold);">Us</span></h1>
+      <p style="max-width: 640px; margin: 16px auto 0; opacity: 0.85; font-size: 1.05rem;">Get in touch with BTDC for valuations, audits, and engineering consultancy services.</p>
     </div>
   </section>
 
@@ -41,7 +41,7 @@
       <div class="contact-grid">
         <div class="contact-info">
           <h3>Get In Touch</h3>
-          <p style="color: var(--text-light); margin-bottom: 24px;">Have a question or need our services? Reach out to us and our team will get back to you promptly.</p>
+          <p>Have a question or need our services? Reach out to us and our team will get back to you promptly.</p>
 
           <div class="contact-info-item">
             <div class="icon">&#x1F4CD;</div>
@@ -72,19 +72,16 @@
             </div>
           </div>
 
-          <div style="margin-top: 30px;">
-            <h4 style="color: var(--primary); margin-bottom: 12px;">Follow Us</h4>
-            <div style="display: flex; gap: 12px;">
-              <a href="https://www.facebook.com/balajitechnical2024/" target="_blank" style="display: flex; align-items: center; gap: 6px; background: var(--primary); color: var(--white); padding: 10px 18px; border-radius: var(--radius); font-size: 0.9rem; transition: var(--transition);">
-                Facebook
-              </a>
-            </div>
+          <div class="social-links">
+            <a href="https://www.facebook.com/balajitechnical2024/" target="_blank" class="social-link">
+              Facebook
+            </a>
           </div>
         </div>
 
         <div>
           <form id="contactForm" class="contact-form">
-            <h3 style="color: var(--primary); margin-bottom: 20px;">Send a Message</h3>
+            <h3>Send a Message</h3>
             <div class="form-row">
               <div class="form-group">
                 <label for="contactName">Your Name</label>
@@ -125,7 +122,6 @@
             <li><a href="index.html">Home</a></li>
             <li><a href="about.html">About Us</a></li>
             <li><a href="services.html">Services</a></li>
-
             <li><a href="track-valuation.html">Track Valuation</a></li>
             <li><a href="contact.html">Contact Us</a></li>
           </ul>
