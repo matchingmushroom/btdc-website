@@ -106,15 +106,11 @@
             </select>
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>BFI / Bank Name *</label>
-            <input type="text" id="f_BfiName" required>
-          </div>
-          <div class="form-group">
-            <label>Branch *</label>
-            <input type="text" id="f_BfiBranch" required>
-          </div>
+        <div class="form-group">
+          <label>BFI / Bank *</label>
+          <select id="f_BfiSelect" required onchange="onBfiSelect()">
+            <option value="">-- Select BFI --</option>
+          </select>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -152,6 +148,7 @@ import {
 const COLL = 'valuations';
 const PUBLIC_COLL = 'public';
 const COUNTER_DOC = 'counters/valuations';
+const BFIS_COLL = 'bfis';
 
 window.currentUser = null;
 window.valuationsData = [];
@@ -171,6 +168,7 @@ onAuthStateChanged(auth, async (user) => {
   check.style.display = 'none';
   content.style.display = 'block';
   startRealtimeListener();
+  startBfiListener();
 });
 
 function startRealtimeListener() {
@@ -186,6 +184,45 @@ function startRealtimeListener() {
     document.getElementById('loadingSpinner').innerHTML = 'Error: ' + err.message;
   });
 }
+
+window.bfiData = [];
+window.unsubBfis = null;
+
+function startBfiListener() {
+  const q = query(collection(db, BFIS_COLL), orderBy('createdAt', 'desc'));
+  window.unsubBfis = onSnapshot(q, (snapshot) => {
+    window.bfiData = [];
+    snapshot.forEach(doc => {
+      window.bfiData.push({ id: doc.id, ...doc.data() });
+    });
+    populateBfiSelect();
+  });
+}
+
+function populateBfiSelect() {
+  const sel = document.getElementById('f_BfiSelect');
+  if (!sel) return;
+  const currentVal = sel.value;
+  sel.innerHTML = '<option value="">-- Select BFI --</option>';
+  window.bfiData.forEach(b => {
+    const val = (b.bfiName || '') + '||' + (b.branch || '');
+    const label = b.bfiName + ' - ' + (b.branch || '') + (b.contactNumber ? ' (' + b.contactNumber + ')' : '');
+    const opt = document.createElement('option');
+    opt.value = val;
+    opt.textContent = label;
+    sel.appendChild(opt);
+  });
+  if ([...sel.options].some(o => o.value === currentVal)) sel.value = currentVal;
+}
+
+window.onBfiSelect = function() {
+  const sel = document.getElementById('f_BfiSelect');
+  const val = sel.value;
+  if (!val) { window.selectedBfiName = ''; window.selectedBfiBranch = ''; return; }
+  const parts = val.split('||');
+  window.selectedBfiName = parts[0] || '';
+  window.selectedBfiBranch = parts[1] || '';
+};
 
 window.renderTable = function() {
   const q = (document.getElementById('staffSearch').value || '').toLowerCase();
@@ -236,8 +273,13 @@ window.editValuation = function(id) {
   document.getElementById('f_ValuationDate').value = rec.valuationDate || '';
   document.getElementById('f_ValuationAmount').value = rec.valuationAmount || '';
   document.getElementById('f_Status').value = rec.status || 'Pending';
-  document.getElementById('f_BfiName').value = rec.bfiName || '';
-  document.getElementById('f_BfiBranch').value = rec.bfiBranch || '';
+  const bfiSelect = document.getElementById('f_BfiSelect');
+  const bfiVal = (rec.bfiName || '') + '||' + (rec.bfiBranch || '');
+  if ([...bfiSelect.options].some(o => o.value === bfiVal)) {
+    bfiSelect.value = bfiVal;
+    window.selectedBfiName = rec.bfiName || '';
+    window.selectedBfiBranch = rec.bfiBranch || '';
+  }
   document.getElementById('f_InitiatedBy').value = rec.initiatedBy || '';
   document.getElementById('valuationModal').style.display = 'flex';
 };
@@ -259,8 +301,8 @@ window.saveValuation = async function(e) {
     valuationDate: document.getElementById('f_ValuationDate').value,
     valuationAmount: Number(document.getElementById('f_ValuationAmount').value),
     status: document.getElementById('f_Status').value,
-    bfiName: document.getElementById('f_BfiName').value.trim(),
-    bfiBranch: document.getElementById('f_BfiBranch').value.trim(),
+    bfiName: window.selectedBfiName || '',
+    bfiBranch: window.selectedBfiBranch || '',
     initiatedBy: document.getElementById('f_InitiatedBy').value.trim(),
     updatedAt: serverTimestamp()
   };

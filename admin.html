@@ -32,6 +32,7 @@
           <input type="text" id="adminSearch" placeholder="Search records..." oninput="renderTable()" style="padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;width:200px;">
           <button class="btn btn-primary" onclick="showModal('add')">+ Add New</button>
           <button class="btn btn-outline" style="border-color:var(--primary);color:var(--primary);" onclick="toggleUsers()">Users</button>
+          <button class="btn btn-outline" style="border-color:var(--primary);color:var(--primary);" onclick="toggleBfis()">BFIs</button>
           <button class="btn btn-outline" style="border-color:var(--primary);color:var(--primary);" onclick="toggleMigration()">Migrate</button>
         </div>
       </div>
@@ -46,6 +47,19 @@
         </form>
         <div id="userList">
           <p style="color:var(--text-light);">Loading users...</p>
+        </div>
+      </div>
+
+      <div id="bfiSection" style="display:none;margin-bottom:30px;background:var(--white);border-radius:8px;box-shadow:var(--shadow);padding:25px;">
+        <h3 style="color:var(--primary);margin-bottom:16px;">Manage BFI / Banks</h3>
+        <form id="addBfiForm" onsubmit="addBfi(event)" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;padding:16px;background:var(--accent);border-radius:8px;">
+          <input type="text" id="newBfiName" placeholder="BFI / Bank name" required style="padding:10px 14px;border:1px solid #ddd;border-radius:6px;flex:1;min-width:180px;">
+          <input type="text" id="newBfiBranch" placeholder="Branch" required style="padding:10px 14px;border:1px solid #ddd;border-radius:6px;flex:1;min-width:140px;">
+          <input type="text" id="newBfiContact" placeholder="Contact number" style="padding:10px 14px;border:1px solid #ddd;border-radius:6px;flex:1;min-width:140px;">
+          <button type="submit" class="btn btn-primary" style="padding:10px 20px;">Add BFI</button>
+        </form>
+        <div id="bfiList">
+          <p style="color:var(--text-light);">Loading BFIs...</p>
         </div>
       </div>
 
@@ -131,15 +145,11 @@
             </select>
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>BFI / Bank Name *</label>
-            <input type="text" id="f_BfiName" required>
-          </div>
-          <div class="form-group">
-            <label>Branch *</label>
-            <input type="text" id="f_BfiBranch" required>
-          </div>
+        <div class="form-group">
+          <label>BFI / Bank *</label>
+          <select id="f_BfiSelect" required onchange="onBfiSelect()">
+            <option value="">-- Select BFI --</option>
+          </select>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -178,6 +188,7 @@ const COLL = 'valuations';
 const PUBLIC_COLL = 'public';
 const USERS_COLL = 'users';
 const COUNTER_DOC = 'counters/valuations';
+const BFIS_COLL = 'bfis';
 
 window.currentUser = null;
 window.currentRole = null;
@@ -201,6 +212,7 @@ onAuthStateChanged(auth, async (user) => {
   content.style.display = 'block';
   startRealtimeListener();
   loadUsers();
+  startBfiListener();
 });
 
 function startRealtimeListener() {
@@ -215,6 +227,90 @@ function startRealtimeListener() {
   }, (err) => {
     document.getElementById('loadingSpinner').innerHTML = 'Error loading data: ' + err.message;
   });
+}
+
+window.bfiData = [];
+window.unsubBfis = null;
+
+function startBfiListener() {
+  const q = query(collection(db, BFIS_COLL), orderBy('createdAt', 'desc'));
+  window.unsubBfis = onSnapshot(q, (snapshot) => {
+    window.bfiData = [];
+    snapshot.forEach(doc => {
+      window.bfiData.push({ id: doc.id, ...doc.data() });
+    });
+    populateBfiSelect();
+    renderBfiTable();
+  });
+}
+
+function populateBfiSelect() {
+  const sel = document.getElementById('f_BfiSelect');
+  if (!sel) return;
+  const currentVal = sel.value;
+  sel.innerHTML = '<option value="">-- Select BFI --</option>';
+  window.bfiData.forEach(b => {
+    const val = (b.bfiName || '') + '||' + (b.branch || '');
+    const label = b.bfiName + ' - ' + (b.branch || '') + (b.contactNumber ? ' (' + b.contactNumber + ')' : '');
+    const opt = document.createElement('option');
+    opt.value = val;
+    opt.textContent = label;
+    sel.appendChild(opt);
+  });
+  if ([...sel.options].some(o => o.value === currentVal)) sel.value = currentVal;
+}
+
+window.onBfiSelect = function() {
+  const sel = document.getElementById('f_BfiSelect');
+  const val = sel.value;
+  if (!val) { window.selectedBfiName = ''; window.selectedBfiBranch = ''; return; }
+  const parts = val.split('||');
+  window.selectedBfiName = parts[0] || '';
+  window.selectedBfiBranch = parts[1] || '';
+};
+
+window.toggleBfis = function() {
+  const el = document.getElementById('bfiSection');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+};
+
+window.addBfi = async function(e) {
+  e.preventDefault();
+  const name = document.getElementById('newBfiName').value.trim();
+  const branch = document.getElementById('newBfiBranch').value.trim();
+  const contact = document.getElementById('newBfiContact').value.trim();
+  const btn = e.target.querySelector('button');
+  btn.textContent = 'Adding...';
+  btn.disabled = true;
+  try {
+    await addDoc(collection(db, BFIS_COLL), {
+      bfiName: name, branch, contactNumber: contact, createdAt: serverTimestamp()
+    });
+    document.getElementById('addBfiForm').reset();
+    showToast('BFI added', 'success');
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+  btn.textContent = 'Add BFI';
+  btn.disabled = false;
+};
+
+window.deleteBfi = async function(id) {
+  if (!confirm('Delete this BFI?')) return;
+  try {
+    await deleteDoc(doc(db, BFIS_COLL, id));
+    showToast('BFI deleted', 'success');
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
+function renderBfiTable() {
+  const el = document.getElementById('bfiList');
+  if (!window.bfiData.length) { el.innerHTML = '<p style="color:var(--text-light);">No BFIs added yet.</p>'; return; }
+  el.innerHTML = '<table class="admin-table"><thead><tr><th>BFI Name</th><th>Branch</th><th>Contact</th><th>Action</th></tr></thead><tbody>' +
+    window.bfiData.map(b => `<tr><td>${esc(b.bfiName || '')}</td><td>${esc(b.branch || '')}</td><td>${esc(b.contactNumber || '-')}</td><td><button class="btn-sm btn-delete" onclick="deleteBfi('${esc(b.id)}')">Delete</button></td></tr>`).join('') +
+    '</tbody></table>';
 }
 
 window.renderTable = function() {
@@ -271,8 +367,13 @@ window.editValuation = function(id) {
   document.getElementById('f_ValuationDate').value = rec.valuationDate || '';
   document.getElementById('f_ValuationAmount').value = rec.valuationAmount || '';
   document.getElementById('f_Status').value = rec.status || 'Pending';
-  document.getElementById('f_BfiName').value = rec.bfiName || '';
-  document.getElementById('f_BfiBranch').value = rec.bfiBranch || '';
+  const bfiSelect = document.getElementById('f_BfiSelect');
+  const bfiVal = (rec.bfiName || '') + '||' + (rec.bfiBranch || '');
+  if ([...bfiSelect.options].some(o => o.value === bfiVal)) {
+    bfiSelect.value = bfiVal;
+    window.selectedBfiName = rec.bfiName || '';
+    window.selectedBfiBranch = rec.bfiBranch || '';
+  }
   document.getElementById('f_InitiatedBy').value = rec.initiatedBy || '';
   document.getElementById('f_VerifiedBy').value = rec.verifiedBy || '';
   document.getElementById('valuationModal').style.display = 'flex';
@@ -295,8 +396,8 @@ window.saveValuation = async function(e) {
     valuationDate: document.getElementById('f_ValuationDate').value,
     valuationAmount: Number(document.getElementById('f_ValuationAmount').value),
     status: document.getElementById('f_Status').value,
-    bfiName: document.getElementById('f_BfiName').value.trim(),
-    bfiBranch: document.getElementById('f_BfiBranch').value.trim(),
+    bfiName: window.selectedBfiName || '',
+    bfiBranch: window.selectedBfiBranch || '',
     initiatedBy: document.getElementById('f_InitiatedBy').value.trim(),
     verifiedBy: document.getElementById('f_VerifiedBy').value.trim(),
     updatedAt: serverTimestamp()
