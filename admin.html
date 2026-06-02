@@ -123,14 +123,34 @@
         </div>
         <div class="form-row">
           <div class="form-group">
+            <label>Plot Number</label>
+            <input type="text" id="f_PlotNumber">
+          </div>
+          <div class="form-group">
             <label>Valuation Type *</label>
             <select id="f_ValuationType">
               <option>Fresh Valuation</option><option>Re-Valuation</option><option>Re-Confirmation</option>
             </select>
           </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Property Owner Name</label>
+            <input type="text" id="f_PropertyOwnerName">
+          </div>
+          <div class="form-group">
+            <label>Borrower Name</label>
+            <input type="text" id="f_BorrowerName">
+          </div>
+        </div>
+        <div class="form-row">
           <div class="form-group">
             <label>Valuation Date *</label>
             <input type="date" id="f_ValuationDate" required>
+          </div>
+          <div class="form-group">
+            <label>Site Visit Date</label>
+            <input type="date" id="f_SiteVisitDate">
           </div>
         </div>
         <div class="form-row">
@@ -141,7 +161,7 @@
           <div class="form-group">
             <label>Status *</label>
             <select id="f_Status">
-              <option>Pending</option><option>In Progress</option><option>Completed</option><option>Delivered</option><option>Cancelled</option>
+              <option>Draft Prepared</option><option>PVR Sent</option><option>Full Valuation Prepared</option><option>Full Valuation Sent</option>
             </select>
           </div>
         </div>
@@ -150,6 +170,12 @@
           <select id="f_BfiSelect" required onchange="onBfiSelect()">
             <option value="">-- Select BFI --</option>
           </select>
+        </div>
+        <div class="form-group">
+          <label>Site Visit Done By</label>
+          <div id="f_StaffCheckboxes" style="display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px;border:1px solid #ddd;border-radius:8px;max-height:150px;overflow-y:auto;">
+            <p style="color:var(--text-light);font-size:0.88rem;width:100%;">Loading staff...</p>
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -213,6 +239,7 @@ onAuthStateChanged(auth, async (user) => {
   startRealtimeListener();
   loadUsers();
   startBfiListener();
+  loadStaffCheckboxes();
 });
 
 function startRealtimeListener() {
@@ -235,7 +262,30 @@ window.unsubBfis = null;
 function startBfiListener() {
   const q = query(collection(db, BFIS_COLL), orderBy('createdAt', 'desc'));
   window.unsubBfis = onSnapshot(q, (snapshot) => {
-    window.bfiData = [];
+async function loadStaffCheckboxes() {
+  const container = document.getElementById('f_StaffCheckboxes');
+  if (!container) return;
+  try {
+    const snap = await getDocs(collection(db, USERS_COLL));
+    const staffUsers = [];
+    snap.forEach(d => { const u = d.data(); if (u.role === 'staff') staffUsers.push({ id: d.id, name: u.displayName || u.email }); });
+    if (!staffUsers.length) { container.innerHTML = '<p style="color:var(--text-light);font-size:0.88rem;width:100%;">No staff users found.</p>'; return; }
+    container.innerHTML = '';
+    staffUsers.forEach(s => {
+      const label = document.createElement('label');
+      label.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:0.88rem;cursor:pointer;padding:4px 8px;background:var(--accent);border-radius:6px;';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.value = s.name;
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(s.name));
+      container.appendChild(label);
+    });
+  } catch (err) {
+    container.innerHTML = '<p style="color:#dc3545;font-size:0.88rem;width:100%;">Error loading staff.</p>';
+  }
+}
+
+window.bfiData = [];
     snapshot.forEach(doc => {
       window.bfiData.push({ id: doc.id, ...doc.data() });
     });
@@ -350,6 +400,9 @@ window.showModal = function(mode, id) {
     document.getElementById('editDocId').value = '';
     document.getElementById('valuationForm').reset();
     document.getElementById('f_ValuationDate').value = new Date().toISOString().split('T')[0];
+    document.querySelectorAll('#f_StaffCheckboxes input[type="checkbox"]').forEach(cb => cb.checked = false);
+    window.selectedBfiName = '';
+    window.selectedBfiBranch = '';
   }
   modal.style.display = 'flex';
 };
@@ -363,10 +416,14 @@ window.editValuation = function(id) {
   document.getElementById('f_CustomerName').value = rec.customerName || '';
   document.getElementById('f_RefNumber').value = rec.refNumber || '';
   document.getElementById('f_PropertyAddress').value = rec.propertyAddress || '';
-  document.getElementById('f_ValuationType').value = rec.valuationType || 'Residential';
+  document.getElementById('f_PlotNumber').value = rec.plotNumber || '';
+  document.getElementById('f_PropertyOwnerName').value = rec.propertyOwnerName || '';
+  document.getElementById('f_BorrowerName').value = rec.borrowerName || '';
+  document.getElementById('f_ValuationType').value = rec.valuationType || 'Fresh Valuation';
   document.getElementById('f_ValuationDate').value = rec.valuationDate || '';
+  document.getElementById('f_SiteVisitDate').value = rec.siteVisitDate || '';
   document.getElementById('f_ValuationAmount').value = rec.valuationAmount || '';
-  document.getElementById('f_Status').value = rec.status || 'Pending';
+  document.getElementById('f_Status').value = rec.status || 'Draft Prepared';
   const bfiSelect = document.getElementById('f_BfiSelect');
   const bfiVal = (rec.bfiName || '') + '||' + (rec.bfiBranch || '');
   if ([...bfiSelect.options].some(o => o.value === bfiVal)) {
@@ -376,6 +433,10 @@ window.editValuation = function(id) {
   }
   document.getElementById('f_InitiatedBy').value = rec.initiatedBy || '';
   document.getElementById('f_VerifiedBy').value = rec.verifiedBy || '';
+  const siteStaff = rec.siteVisitDoneBy || [];
+  document.querySelectorAll('#f_StaffCheckboxes input[type="checkbox"]').forEach(cb => {
+    cb.checked = siteStaff.includes(cb.value);
+  });
   document.getElementById('valuationModal').style.display = 'flex';
 };
 
@@ -388,12 +449,19 @@ window.saveValuation = async function(e) {
   const btn = document.getElementById('saveBtn');
   const editId = document.getElementById('editDocId').value;
   const isEdit = !!editId;
+  const staffCheckboxes = document.querySelectorAll('#f_StaffCheckboxes input[type="checkbox"]:checked');
+  const siteVisitDoneBy = Array.from(staffCheckboxes).map(cb => cb.value);
   const data = {
     customerName: document.getElementById('f_CustomerName').value.trim(),
     refNumber: document.getElementById('f_RefNumber').value.trim(),
     propertyAddress: document.getElementById('f_PropertyAddress').value.trim(),
+    plotNumber: document.getElementById('f_PlotNumber').value.trim(),
+    propertyOwnerName: document.getElementById('f_PropertyOwnerName').value.trim(),
+    borrowerName: document.getElementById('f_BorrowerName').value.trim(),
     valuationType: document.getElementById('f_ValuationType').value,
     valuationDate: document.getElementById('f_ValuationDate').value,
+    siteVisitDate: document.getElementById('f_SiteVisitDate').value,
+    siteVisitDoneBy,
     valuationAmount: Number(document.getElementById('f_ValuationAmount').value),
     status: document.getElementById('f_Status').value,
     bfiName: window.selectedBfiName || '',
@@ -421,7 +489,12 @@ window.saveValuation = async function(e) {
           verifiedBy: data.verifiedBy,
           initiatedBy: data.initiatedBy,
           bfiName: data.bfiName,
-          bfiBranch: data.bfiBranch
+          bfiBranch: data.bfiBranch,
+          plotNumber: data.plotNumber,
+          propertyOwnerName: data.propertyOwnerName,
+          borrowerName: data.borrowerName,
+          siteVisitDate: data.siteVisitDate,
+          siteVisitDoneBy: data.siteVisitDoneBy
         }, { merge: true });
       }
       showToast('Valuation updated', 'success');
@@ -445,7 +518,12 @@ window.saveValuation = async function(e) {
           verifiedBy: data.verifiedBy,
           initiatedBy: data.initiatedBy,
           bfiName: data.bfiName,
-          bfiBranch: data.bfiBranch
+          bfiBranch: data.bfiBranch,
+          plotNumber: data.plotNumber,
+          propertyOwnerName: data.propertyOwnerName,
+          borrowerName: data.borrowerName,
+          siteVisitDate: data.siteVisitDate,
+          siteVisitDoneBy: data.siteVisitDoneBy
         });
       }
       showToast('Valuation added (ID: ' + nextId + ')', 'success');
@@ -615,12 +693,17 @@ window.startMigration = async function() {
         valuationType: row.ValuationType || '',
         valuationDate: row.ValuationDate || '',
         valuationAmount: row.ValuationAmount ? Number(row.ValuationAmount) : 0,
-        status: row.Status || 'Pending',
+        status: row.Status || 'Draft Prepared',
         initiatedBy: row.InitiatedBy || '',
         verifiedBy: row.VerifiedBy || '',
         verifiedAt: row.VerifiedBy ? new Date() : null,
         bfiName: row.BfiName || '',
         bfiBranch: row.BfiBranch || '',
+        plotNumber: row.PlotNumber || '',
+        propertyOwnerName: row.PropertyOwnerName || '',
+        borrowerName: row.BorrowerName || '',
+        siteVisitDate: row.SiteVisitDate || '',
+        siteVisitDoneBy: [],
         createdBy: 'migration',
         createdAt: new Date(),
         updatedAt: new Date()
@@ -631,7 +714,7 @@ window.startMigration = async function() {
       if (row.RefNumber) {
         await setDoc(doc(db, PUBLIC_COLL, row.RefNumber), {
           customerName: row.CustomerName || '',
-          status: row.Status || 'Pending',
+          status: row.Status || 'Draft Prepared',
           valuationDate: row.ValuationDate || '',
           valuationType: row.ValuationType || '',
           valuationAmount: row.ValuationAmount ? Number(row.ValuationAmount) : 0,
@@ -639,7 +722,12 @@ window.startMigration = async function() {
           verifiedBy: row.VerifiedBy || '',
           verifiedAt: row.VerifiedBy ? new Date() : null,
           bfiName: row.BfiName || '',
-          bfiBranch: row.BfiBranch || ''
+          bfiBranch: row.BfiBranch || '',
+          plotNumber: row.PlotNumber || '',
+          propertyOwnerName: row.PropertyOwnerName || '',
+          borrowerName: row.BorrowerName || '',
+          siteVisitDate: row.SiteVisitDate || '',
+          siteVisitDoneBy: []
         });
       }
 
