@@ -31,7 +31,8 @@
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
           <input type="text" id="adminSearch" placeholder="Search records..." oninput="renderTable()" style="padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;width:200px;">
           <button class="btn btn-primary" onclick="showModal('add')">+ Add New</button>
-          <button class="btn btn-outline" style="border-color:var(--primary);color:var(--primary);" onclick="toggleUsers()">Manage Users</button>
+          <button class="btn btn-outline" style="border-color:var(--primary);color:var(--primary);" onclick="toggleUsers()">Users</button>
+          <button class="btn btn-outline" style="border-color:var(--primary);color:var(--primary);" onclick="toggleMigration()">Migrate</button>
         </div>
       </div>
 
@@ -46,6 +47,16 @@
         <div id="userList">
           <p style="color:var(--text-light);">Loading users...</p>
         </div>
+      </div>
+
+      <div id="migrationSection" style="display:none;margin-bottom:30px;background:var(--white);border-radius:8px;box-shadow:var(--shadow);padding:25px;">
+        <h3 style="color:var(--primary);margin-bottom:8px;">Import from Google Sheets</h3>
+        <p style="color:var(--text-light);margin-bottom:16px;font-size:0.92rem;">Migrate existing data from your published CSV. Enter the published CSV URL or use the default one below.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+          <input type="text" id="migrationUrl" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vRlkAk2WUvJyMOYIAVFi1ngEB0mO2_4RfrrNnd6jW-LXf_KFffuxnWKYWLPYO77PI_uKhfSfDXKFkSc/pub?output=csv" style="flex:1;min-width:300px;padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-size:0.9rem;">
+          <button class="btn btn-primary" onclick="startMigration()">Start Import</button>
+        </div>
+        <div id="migrationLog" style="background:var(--accent);padding:14px;border-radius:6px;font-size:0.85rem;max-height:300px;overflow-y:auto;font-family:monospace;white-space:pre-wrap;color:var(--text);"></div>
       </div>
 
       <div style="overflow-x:auto;">
@@ -452,6 +463,111 @@ window.removeUser = async function(uid) {
     showToast('Error: ' + err.message, 'error');
   }
 };
+
+window.toggleMigration = function() {
+  const el = document.getElementById('migrationSection');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+};
+
+window.startMigration = async function() {
+  const url = document.getElementById('migrationUrl').value.trim();
+  const log = document.getElementById('migrationLog');
+  log.textContent = 'Starting import from published CSV...\n';
+  if (!url) { log.textContent += 'Error: CSV URL is required.\n'; return; }
+
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const csv = await resp.text();
+    const rows = parseCSV(csv);
+    log.textContent += 'Found ' + rows.length + ' rows.\n';
+
+    let imported = 0;
+    let maxId = 0;
+    for (const row of rows) {
+      const vid = parseInt(row.ValuationID, 10);
+      if (!isNaN(vid) && vid > maxId) maxId = vid;
+
+      const docData = {
+        valuationId: row.ValuationID || '',
+        customerName: row.CustomerName || '',
+        refNumber: row.RefNumber || '',
+        propertyAddress: row.PropertyAddress || '',
+        valuationType: row.ValuationType || '',
+        valuationDate: row.ValuationDate || '',
+        valuationAmount: row.ValuationAmount ? Number(row.ValuationAmount) : 0,
+        status: row.Status || 'Pending',
+        initiatedBy: row.InitiatedBy || '',
+        verifiedBy: row.VerifiedBy || '',
+        verifiedAt: row.VerifiedBy ? new Date() : null,
+        createdBy: 'migration',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      const ref = await addDoc(collection(db, COLL), docData);
+
+      if (row.RefNumber) {
+        await setDoc(doc(db, PUBLIC_COLL, row.RefNumber), {
+          customerName: row.CustomerName || '',
+          status: row.Status || 'Pending',
+          valuationDate: row.ValuationDate || '',
+          valuationType: row.ValuationType || '',
+          valuationAmount: row.ValuationAmount ? Number(row.ValuationAmount) : 0,
+          initiatedBy: row.InitiatedBy || '',
+          verifiedBy: row.VerifiedBy || '',
+          verifiedAt: row.VerifiedBy ? new Date() : null
+        });
+      }
+
+      imported++;
+      log.textContent += '  [' + imported + '/' + rows.length + '] Imported ' + (row.RefNumber || row.ValuationID) + '\n';
+    }
+
+    if (maxId > 0) {
+      const counterRef = doc(db, COUNTER_DOC);
+      await setDoc(counterRef, { count: maxId }, { merge: true });
+    }
+
+    log.textContent += '\n\u2705 Done! ' + imported + ' records imported. Counter set to ' + maxId + '.\n';
+  } catch (err) {
+    log.textContent += '\n\u274C Error: ' + err.message + '\n';
+  }
+};
+
+function parseCSV(csv) {
+  const lines = csv.trim().split('\n');
+  const headers = parseCSVLine(lines[0]);
+  const result = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const values = parseCSVLine(lines[i]);
+    const obj = {};
+    headers.forEach((h, idx) => { obj[h.trim()] = (values[idx] || '').trim(); });
+    result.push(obj);
+  }
+  return result;
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i+1] === '"') { current += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) {
+      result.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current);
+  return result;
+}
 
 function esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
 window.showToast = function(msg, type) {
