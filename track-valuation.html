@@ -144,33 +144,38 @@ window.lookupValuation = async function() {
 
     const d = snap.data();
     const isVerified = d.verifiedBy && d.verifiedBy.trim();
-    const statusClass = (d.status || 'pending').toLowerCase().replace(/\s+/g, '-');
-    const amount = d.valuationAmount ? 'NPR ' + Number(d.valuationAmount).toLocaleString('en-IN') : '-';
+
+    if (!isVerified) {
+      resultDiv.innerHTML = `
+        <div class="track-card" style="text-align:center;padding:48px 24px;">
+          <div style="font-size:3rem;margin-bottom:16px;">&#x1F512;</div>
+          <h3 style="color:var(--text-dark);margin-bottom:8px;font-size:1.2rem;">Pending Verification</h3>
+          <p style="color:var(--text-muted);">This valuation reference number <strong>"${esc(refNum)}"</strong> exists but is pending verification by BTDC. Please check back later or contact us.</p>
+        </div>
+      `;
+      resultDiv.style.display = 'block';
+      return;
+    }
 
     resultDiv.innerHTML = `
       <div class="track-card">
         <div class="track-card-header">
           <span style="display:flex;align-items:center;gap:12px;">
-            <span style="font-size:1.3rem;">${isVerified ? '&#x2705;' : '&#x1F512;'}</span>
+            <span style="font-size:1.3rem;">&#x2705;</span>
             <strong style="color:var(--primary-dark);font-size:1.05rem;">Valuation Found</strong>
           </span>
-          <span class="status-badge status-${esc(statusClass)}">${esc(d.status)}</span>
         </div>
         <div class="track-card-body">
           <div class="track-field"><strong>Customer Name:</strong> ${esc(d.customerName || '-')}</div>
           <div class="track-field"><strong>Valuation Type:</strong> ${esc(d.valuationType || '-')}</div>
           <div class="track-field"><strong>Reference Number:</strong> ${esc(refNum)}</div>
-          <div class="track-field"><strong>Amount:</strong> ${amount}</div>
           <div class="track-field"><strong>Date:</strong> ${esc(d.valuationDate || '-')}</div>
           <div class="track-field"><strong>BFI / Bank:</strong> ${esc(d.bfiName || '-')}</div>
           <div class="track-field"><strong>Branch:</strong> ${esc(d.bfiBranch || '-')}</div>
           <div class="track-field"><strong>Initiated By:</strong> ${esc(d.initiatedBy || '-')}</div>
         </div>
-        <div class="track-verification ${isVerified ? 'verified' : 'unverified'}">
-          ${isVerified
-            ? `<p>&#x2705; The mentioned <strong>${esc(d.valuationType || 'valuation')}</strong> has been done by <strong>Balaji Technical Designing and Consultancy</strong> on request of <strong>${esc(d.bfiName || 'N/A')}</strong>, <strong>${esc(d.bfiBranch || 'N/A')}</strong>. It is an authentic BTDC valuation document.</p>`
-            : `<p>&#x26A0;&#xFE0F; This valuation is pending verification by BTDC. Check back later or contact us.</p>`
-          }
+        <div class="track-verification verified">
+          <p>&#x2705; The mentioned <strong>${esc(d.valuationType || 'valuation')}</strong> has been done by <strong>Balaji Technical Designing and Consultancy</strong> on request of <strong>${esc(d.bfiName || 'N/A')}</strong>, <strong>${esc(d.bfiBranch || 'N/A')}</strong>. It is an authentic BTDC valuation document.</p>
         </div>
       </div>
     `;
