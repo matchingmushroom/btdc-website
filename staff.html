@@ -160,6 +160,19 @@
     </div>
   </div>
 
+  <div id="viewModal" class="modal-overlay" style="display:none;">
+    <div class="modal" style="max-width:560px;">
+      <div class="modal-header">
+        <h3 id="viewModalTitle">Valuation Details</h3>
+        <button class="modal-close" onclick="closeViewModal()">&times;</button>
+      </div>
+      <div id="viewModalBody" style="display:grid;gap:12px;"></div>
+      <div class="modal-footer" id="viewModalFooter">
+        <button type="button" class="btn btn-outline" style="border-color:var(--primary-dark);color:var(--primary-dark);background:var(--white);" onclick="closeViewModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
   <footer>
     <div class="container">
       <div class="footer-bottom"><p>&copy; 2026 Balaji Technical Designing and Consultancy. All rights reserved.</p></div>
@@ -276,6 +289,7 @@ window.renderTable = function() {
       <td>${r.valuationAmount ? 'NPR ' + Number(r.valuationAmount).toLocaleString('en-IN') : '-'}</td>
       <td><span class="status-badge status-${esc((r.status||'pending').toLowerCase().replace(/\s+/g,'-'))}">${esc(r.status)}${verified ? ' &#x2705;' : ''}</span></td>
       <td class="action-btns">
+        <button class="btn-sm btn-edit" onclick="viewValuation('${esc(r.id)}')">View</button>
         <button class="btn-sm btn-edit" onclick="editValuation('${esc(r.id)}')">Edit</button>
       </td>
     </tr>`;
@@ -324,6 +338,39 @@ async function loadStaffCheckboxes() {
     container.innerHTML = '<p style="color:var(--error);font-size:0.88rem;width:100%;">Error loading staff.</p>';
   }
 }
+
+window.viewValuation = function(id) {
+  const rec = window.valuationsData.find(r => r.id === id);
+  if (!rec) return;
+  document.getElementById('viewModalTitle').textContent = 'Valuation #' + esc(rec.valuationId);
+  const body = document.getElementById('viewModalBody');
+  const fields = [
+    ['Customer Name', rec.customerName],
+    ['Reference Number', rec.refNumber],
+    ['Property Address', rec.propertyAddress],
+    ['Plot Number', rec.plotNumber],
+    ['Property Owner', rec.propertyOwnerName],
+    ['Borrower Name', rec.borrowerName],
+    ['Valuation Type', rec.valuationType],
+    ['Valuation Date', rec.valuationDate],
+    ['Site Visit Date', rec.siteVisitDate],
+    ['Site Visit Done By', rec.siteVisitDoneBy ? rec.siteVisitDoneBy.join(', ') : '-'],
+    ['FMV (NPR)', rec.valuationAmount ? Number(rec.valuationAmount).toLocaleString('en-IN') : '-'],
+    ['Status', rec.status],
+    ['BFI / Bank', rec.bfiName],
+    ['Branch', rec.bfiBranch],
+    ['Initiated By', rec.initiatedBy],
+    ['Verified By', rec.verifiedBy || 'Not verified']
+  ];
+  body.innerHTML = fields.map(f =>
+    `<div><strong style="color:var(--text-dark);font-size:0.88rem;">${esc(f[0])}:</strong> <span style="color:var(--text-body);font-size:0.88rem;">${esc(f[1])}</span></div>`
+  ).join('');
+  document.getElementById('viewModal').style.display = 'flex';
+};
+
+window.closeViewModal = function() {
+  document.getElementById('viewModal').style.display = 'none';
+};
 
 window.showAddModal = function() {
   document.getElementById('modalTitle').textContent = 'Add Valuation';
