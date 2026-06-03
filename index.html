@@ -12,7 +12,7 @@
   <header>
     <div class="header-inner">
       <a href="index.html" class="logo">
-        <span class="logo-svg">B</span>
+        <span class="logo-badge">B</span>
         <span>BTDC</span>
       </a>
       <button class="hamburger" aria-label="Menu">
@@ -38,8 +38,13 @@
           <a href="contact.html" class="btn btn-outline">Get a Quote</a>
         </div>
       </div>
-      <div class="hero-image">
-        <div class="hero-image-placeholder">&#x2699;&#xFE0F;</div>
+      <div class="hero-visual">
+        <div class="hero-ring">
+          <div class="hero-ring-inner"></div>
+          <div class="hero-icon-box">
+            <span>&#x2699;&#xFE0F;</span>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -73,39 +78,56 @@
       <p class="section-subtitle">Comprehensive engineering and consultancy solutions tailored to your needs</p>
       <div class="services-grid">
         <div class="service-card">
-          <div class="service-icon">&#x1F3E0;</div>
+          <div class="service-icon"><span>&#x1F3E0;</span></div>
           <h3>Property Valuation</h3>
           <p>Residential, commercial, and land valuations for banks, financial institutions, and private clients with precise market analysis.</p>
-          <a href="services.html" class="btn btn-primary">Learn More</a>
+          <a href="services.html" class="service-link">Learn More &rarr;</a>
         </div>
         <div class="service-card">
-          <div class="service-icon">&#x1F50D;</div>
+          <div class="service-icon"><span>&#x1F50D;</span></div>
           <h3>Insurance Surveyor &amp; Technical Audit</h3>
           <p>Risk assessments, replacement value calculations, and compliance audits for insurance coverage and project verification.</p>
-          <a href="services.html" class="btn btn-primary">Learn More</a>
+          <a href="services.html" class="service-link">Learn More &rarr;</a>
         </div>
         <div class="service-card">
-          <div class="service-icon">&#x2699;&#xFE0F;</div>
+          <div class="service-icon"><span>&#x2699;&#xFE0F;</span></div>
           <h3>Technical Consultancy &amp; Engineering</h3>
           <p>Highway engineering, irrigation systems, water supply, sanitation, urban planning, and infrastructure project supervision.</p>
-          <a href="services.html" class="btn btn-primary">Learn More</a>
+          <a href="services.html" class="service-link">Learn More &rarr;</a>
         </div>
       </div>
     </div>
   </section>
 
-  <section class="section mission-vision">
+  <section class="section mission-section">
     <div class="container">
-      <h2 class="section-title">Our <span>Mission</span> &amp; <span>Vision</span></h2>
-      <p class="section-subtitle">Driven by purpose, guided by values</p>
-      <div class="mv-grid">
-        <div class="mv-card">
-          <h3>&#x1F3AF; Our Mission</h3>
-          <p>Provide precise valuations and expert consultancy with integrity, professionalism, timely delivery, cost efficiency, innovation, and continuous improvement, ensuring client satisfaction and confidence.</p>
+      <div class="mv-layout">
+        <div class="mv-cards">
+          <div class="mv-cards-bg">
+            <h2>Our <span>Mission</span> &amp; <span>Vision</span></h2>
+            <p>Driven by purpose, guided by values</p>
+            <div class="mv-card-item">
+              <div class="mv-card-icon"><span>&#x1F3AF;</span></div>
+              <div>
+                <h4>Our Mission</h4>
+                <p>Provide precise valuations and expert consultancy with integrity, professionalism, timely delivery, cost efficiency, innovation, and continuous improvement, ensuring client satisfaction and confidence.</p>
+              </div>
+            </div>
+            <div class="mv-card-item">
+              <div class="mv-card-icon"><span>&#x1F4A1;</span></div>
+              <div>
+                <h4>Our Vision</h4>
+                <p>To become a trusted leader in valuation and consultancy services, delivering accurate, reliable insights that empower clients&rsquo; strategic and financial decisions.</p>
+              </div>
+            </div>
+          </div>
+          <div class="mv-cards-border"></div>
         </div>
-        <div class="mv-card">
-          <h3>&#x1F4A1; Our Vision</h3>
-          <p>To become a trusted leader in valuation and consultancy services, delivering accurate, reliable insights that empower clients&rsquo; strategic and financial decisions.</p>
+        <div class="mv-visual">
+          <div class="mv-tagline">
+            <h4>Professional &amp; Trusted</h4>
+            <p style="color:var(--on-surface-variant);font-size:14px;line-height:1.6;">We combine technical expertise with ethical practices to deliver results you can rely on.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -114,12 +136,16 @@
   <footer>
     <div class="container">
       <div class="footer-grid">
-        <div class="footer-about">
-          <h3>Balaji Technical <span>Designing &amp; Consultancy</span></h3>
+        <div class="footer-brand">
+          <h3>Balaji Technical <span style="color:var(--secondary-container);">Designing &amp; Consultancy</span></h3>
           <p>Established in 2079 B.S., BTDC is a trusted engineering and consultancy firm providing expert property valuations, technical audits, and infrastructure solutions in Nepal.</p>
+          <div class="footer-social">
+            <a href="mailto:info.btdc@gmail.com" title="Email">&#x2709;</a>
+            <a href="tel:+9779843691905" title="Phone">&#x260E;</a>
+          </div>
         </div>
         <div class="footer-links">
-          <h4>Quick Links</h4>
+          <h5>Quick Links</h5>
           <ul>
             <li><a href="index.html">Home</a></li>
             <li><a href="about.html">About Us</a></li>
@@ -129,7 +155,7 @@
           </ul>
         </div>
         <div class="footer-links">
-          <h4>Services</h4>
+          <h5>Services</h5>
           <ul>
             <li><a href="services.html">Property Valuation</a></li>
             <li><a href="services.html">Insurance Surveyor</a></li>
@@ -138,16 +164,21 @@
           </ul>
         </div>
         <div class="footer-links">
-          <h4>Contact</h4>
-          <ul>
-            <li><a>Birgunj, Nepal</a></li>
-            <li><a href="tel:+9779843691905">+977 9843691905</a></li>
-            <li><a href="mailto:info.btdc@gmail.com">info.btdc@gmail.com</a></li>
+          <h5>Contact</h5>
+          <ul class="footer-contact">
+            <li><span>&#x1F4CD;</span> Birgunj, Nepal</li>
+            <li><span>&#x260E;</span> <a href="tel:+9779843691905">+977 9843691905</a></li>
+            <li><span>&#x2709;</span> <a href="mailto:info.btdc@gmail.com">info.btdc@gmail.com</a></li>
           </ul>
         </div>
       </div>
       <div class="footer-bottom">
         <p>&copy; 2026 Balaji Technical Designing and Consultancy. All rights reserved.</p>
+        <div class="footer-bottom-links">
+          <a href="about.html">About</a>
+          <a href="contact.html">Contact</a>
+          <a href="track-valuation.html">Track Valuation</a>
+        </div>
       </div>
     </div>
   </footer>
